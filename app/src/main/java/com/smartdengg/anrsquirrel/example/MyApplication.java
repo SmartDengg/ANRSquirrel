@@ -12,7 +12,8 @@ public class MyApplication extends Application {
 
   private SquirrelListener listener = new SquirrelListener() {
     @Override public void onAppNotResponding(ANRError error) {
-      throw error;
+      //throw error;
+      error.printStackTrace();
     }
 
     @Override public void onInterrupted(InterruptedException exception) {

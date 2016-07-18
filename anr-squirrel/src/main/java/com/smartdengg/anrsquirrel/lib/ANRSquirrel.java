@@ -4,11 +4,12 @@ import android.os.Debug;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
+import android.util.Log;
 import android.util.Printer;
 import java.util.concurrent.TimeUnit;
 import org.jetbrains.annotations.NotNull;
 
-@SuppressWarnings("UnusedDeclaration") public class ANRSquirrel {
+@SuppressWarnings("UnusedDeclaration") public class ANRSquirrel extends Thread {
 
   private static final String TAG = ANRSquirrel.class.getSimpleName();
   public static final String START_SIGNAL = ">>>>>";
@@ -30,10 +31,10 @@ import org.jetbrains.annotations.NotNull;
   private final boolean shouldIgnoreDebugger;
   private final boolean onlyMainThread;
   private final SquirrelListener listener;
-  private final Handler mainHandler = new Handler(Looper.getMainLooper());
-  private long startNanos;
-  private long stopNanos;
+  private volatile long startNanos;
+  private volatile long stopNanos;
 
+  private final Handler mainHandler = new Handler(Looper.getMainLooper());
   private volatile int tick = 0;
   private final Runnable ticker = new Runnable() {
     @Override public void run() {
@@ -78,12 +79,64 @@ import org.jetbrains.annotations.NotNull;
           ANRSquirrel.this.startNanos = System.nanoTime();
         } else if (isEnd(message)) {
           ANRSquirrel.this.stopNanos = System.nanoTime();
-          if (isBlock()) {
-            HandlerFactory.createdHandler().post(mRunnable);
+
+          if (!isBlock()) return;
+
+          String stackTraceString = Log.getStackTraceString(new Throwable());
+          System.out.println("stackTraceString = " + stackTraceString);
+
+          /*ANRError anrError;
+          if (onlyMainThread) {
+            anrError = ANRError.onlyMainThread();
+          } else {
+            anrError = ANRError.allThread();
           }
+          LISTENER_OF_SOULS.onAppNotResponding(anrError);*/
         }
       }
     });
+  }
+
+  @Override public void run() {
+    this.setName("|ANR-Squirrel|");
+    ANRSquirrel.this.startMonitor();
+  }
+
+  private void startMonitor() {
+    int lastTick;
+    int lastIgnored = -1;
+    while (!isInterrupted()) {
+
+      lastTick = tick;
+      mainHandler.post(ticker);
+      try {
+        Thread.sleep(interval);
+      } catch (InterruptedException e) {
+        LISTENER_OF_SOULS.onInterrupted(e);
+        return;
+      }
+
+      // If the main thread has not handled ticker, it is blocked. ANR.
+      if (tick == lastTick) {
+        if (!shouldIgnoreDebugger && Debug.isDebuggerConnected()) {
+          if (tick != lastIgnored) {
+            Log.w("ANRWatchdog",
+                "An ANR was detected but ignored because the debugger is connected (you can prevent this with setIgnoreDebugger(true))");
+          }
+          lastIgnored = tick;
+          continue;
+        }
+
+        ANRError anrError;
+        if (onlyMainThread) {
+          anrError = ANRError.onlyMainThread();
+        } else {
+          anrError = ANRError.allThread();
+        }
+        LISTENER_OF_SOULS.onAppNotResponding(anrError);
+        return;
+      }
+    }
   }
 
   private boolean isBlock() {
