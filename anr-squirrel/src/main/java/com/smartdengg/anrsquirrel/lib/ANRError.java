@@ -3,6 +3,7 @@ package com.smartdengg.anrsquirrel.lib;
 import android.os.Looper;
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.List;
 
 @SuppressWarnings({ "Convert2Diamond", "UnusedDeclaration" }) public class ANRError extends Error {
 
@@ -56,8 +57,18 @@ import java.util.Arrays;
       threads = new Thread[(int) (threads.length * 1.5)];
     }
 
-    if (!Arrays.asList(threads).contains(mainThread)) {
+    List<Thread> threadList = Arrays.asList(threads);
+    if (!threadList.contains(mainThread)) {
       threads = insertElement(threads, mainThread, 0);
+    } else {
+      /*int i = threadList.indexOf(mainThread);
+      threads[i] = Looper.getMainLooper().getThread();*/
+    }
+
+    for (int i = 0; i < threads.length; i++) {
+
+      if (threads[i] == null) continue;
+      if (threads[i].getId() == mainThread.getId()) threads[i] = mainThread;
     }
 
     for (Thread thread : threads) {
@@ -71,11 +82,23 @@ import java.util.Arrays;
       String name = getThreadTitle(thread);
       StackTraceElement[] stackTraceElements = thread.getStackTrace();
 
-      if (thread.getName().equals(ANRSquirrel.currentThread().getName())) {
+      /*if (thread.getName().startsWith(ANRSquirrel.currentThread().getName())) {
         throwable = new Inner(name, new StackTraceElement[] {}).new ThreadThrowable(throwable);
+      } else*/ if (thread.getId() == mainThread.getId()) {
+
+        StackTraceElement[] threadStackTrace = thread.getStackTrace();
+        for (StackTraceElement stackTraceElement : threadStackTrace)
+          System.out.println("threadStackTrace: --->" + stackTraceElement);
+
+        StackTraceElement[] stackTrace = mainThread.getStackTrace();
+        for (StackTraceElement stackTraceElement : stackTrace)
+          System.out.println("stackTraceElement: --->" + stackTraceElement);
+
+        throwable = new Inner(name, stackTrace).new ThreadThrowable(throwable);
       } else {
         throwable = new Inner(name, stackTraceElements).new ThreadThrowable(throwable);
       }
+      //throwable = new Inner(name, stackTraceElements).new ThreadThrowable(throwable);
     }
 
     return new ANRError(throwable);

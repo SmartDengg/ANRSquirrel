@@ -4,10 +4,11 @@ import android.os.Bundle;
 import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 
-public class MainActivity extends AppCompatActivity {
+@SuppressWarnings("all") public class MainActivity extends AppCompatActivity {
 
   private static final String TAG = MainActivity.class.getSimpleName();
 
@@ -16,10 +17,17 @@ public class MainActivity extends AppCompatActivity {
     setContentView(R.layout.activity_main);
     ButterKnife.bind(MainActivity.this);
     ButterKnife.setDebug(true);
+
+    findViewById(R.id.btn).setOnClickListener(new View.OnClickListener() {
+      @Override public void onClick(View v) {
+        Log.e(TAG, "Begin waiting!");
+        SystemClock.sleep(2 * 1000);
+      }
+    });
   }
 
   @OnClick(R.id.btn) protected void onClick() {
-    Log.e(TAG, "Begin waiting!");
-    SystemClock.sleep(20 * 1000);
+    //Log.e(TAG, "Begin waiting!");
+    //SystemClock.sleep(2 * 1000);
   }
 }
