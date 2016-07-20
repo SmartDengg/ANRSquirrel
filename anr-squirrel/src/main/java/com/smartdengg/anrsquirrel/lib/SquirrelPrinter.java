@@ -23,13 +23,16 @@ class SquirrelPrinter implements Printer {
   private volatile long stopNanos;
   private long interval;
   private boolean shouldIgnoreDebugger;
-  private final Handler handler;
+  private final Handler ANRHandler;
+  private final Handler checkLockHandler;
   private ANRError anrError;
-  private Callback mCallback;
-  private Runnable runnable = new Runnable() {
+  private Callback callback;
+  private Runnable ANRRunnable = new Runnable() {
     @Override public void run() {
 
       anrError = ANRError.allThread();
+
+      if (isDumping.get()) checkLockHandler.postDelayed(checkLockRunnable, (long) (interval * 0.3));
 
       /*String name = Thread.currentThread().getName();
       if (!name.contains("dalvik") && !name.contains("java") && !name.contains("com.android")) {
@@ -38,11 +41,18 @@ class SquirrelPrinter implements Printer {
     }
   };
 
+  private Runnable checkLockRunnable = new Runnable() {
+    @Override public void run() {
+      if (isDumping.get() && callback != null) callback.onBlockOccur(anrError);
+    }
+  };
+
   public SquirrelPrinter(int interval, boolean shouldIgnoreDebugger, Callback callback) {
     this.interval = interval;
     this.shouldIgnoreDebugger = shouldIgnoreDebugger;
-    this.mCallback = callback;
-    this.handler = HandlerFactory.createdHandler();
+    this.callback = callback;
+    this.ANRHandler = HandlerFactory.createdHandler();
+    this.checkLockHandler = HandlerFactory.createdHandler();
   }
 
   @Override public void println(String x) {
@@ -53,18 +63,20 @@ class SquirrelPrinter implements Printer {
       if (isDumping.get()) return;
       isDumping.set(true);
 
-      this.handler.removeCallbacks(runnable);
-      this.handler.postDelayed(runnable, (long) (interval * 0.75));
+      this.ANRHandler.removeCallbacks(ANRRunnable);
+      this.checkLockHandler.removeCallbacks(checkLockRunnable);
+      this.ANRHandler.postDelayed(ANRRunnable, (long) (interval * 0.8));
     } else if (isEnd(x)) {
       SquirrelPrinter.this.stopNanos = System.nanoTime();
 
-      if (!isDumping.get()) return;
+
       isDumping.set(false);
 
       if (!isBlock()) {
-        this.handler.removeCallbacks(runnable);
+        this.ANRHandler.removeCallbacks(ANRRunnable);
+        this.checkLockHandler.removeCallbacks(checkLockRunnable);
       } else {
-        if (mCallback != null) mCallback.onBlockOccur(anrError);
+        if (callback != null) callback.onBlockOccur(anrError);
       }
     }
   }

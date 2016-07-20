@@ -19,16 +19,10 @@ import org.jetbrains.annotations.NotNull;
     }
   };
 
-  /* private final int interval;
-   private final boolean shouldIgnoreDebugger;
-   private final boolean onlyMainThread;*/
   private final SquirrelListener listener;
 
   ANRSquirrel(int interval, boolean shouldIgnoreDebugger, boolean onlyMainThread,
       SquirrelListener listener) {
-  /*  this.interval = interval;
-    this.shouldIgnoreDebugger = shouldIgnoreDebugger;
-    this.onlyMainThread = onlyMainThread;*/
     this.listener = listener;
 
     Looper.getMainLooper()
@@ -38,14 +32,7 @@ import org.jetbrains.annotations.NotNull;
                 LISTENER_OF_SOULS.onAppNotResponding(anrError);
               }
             }));
-
-    //ANRSquirrel.this.start();
   }
-
-  /*@Override public Throwable fillInStackTrace() {
-    setStackTrace(new StackTraceElement[] {});
-    return ANRSquirrel.this;
-  }*/
 
   @SuppressWarnings("UnusedDeclaration") public static class Builder {
 
