@@ -2,7 +2,7 @@ package com.smartdengg.anrsquirrel.lib;
 
 import android.os.Handler;
 import android.os.HandlerThread;
-import java.util.concurrent.atomic.AtomicInteger;
+import android.text.TextUtils;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -12,33 +12,26 @@ import org.jetbrains.annotations.NotNull;
  */
 public class HandlerFactory {
 
-  private static final String THREAD_PREFIX = "|ANRSquirrel|-";
-
-  private static final AtomicInteger mAtomicInteger = new AtomicInteger();
+  private static final String THREAD_PREFIX = "|ANRSquirrel|";
 
   private HandlerFactory() {
     throw new IllegalStateException("No instance!");
   }
 
   public static Handler createdHandler() {
-    return new HandlerThreadWrapper(mAtomicInteger.getAndIncrement()).getHandler();
+    return createdHandler("");
   }
 
-  public static Handler createdHandler(@NotNull String name) {
-    return new HandlerThreadWrapper(name).getHandler();
+  public static Handler createdHandler(@NotNull String suffix) {
+    return new HandlerThreadWrapper(suffix).getHandler();
   }
 
   private static class HandlerThreadWrapper {
     private Handler handler = null;
 
-    public HandlerThreadWrapper(String name) {
-      HandlerThread handlerThread = new android.os.HandlerThread(THREAD_PREFIX + name);
-      handlerThread.start();
-      handler = new Handler(handlerThread.getLooper());
-    }
-
-    public HandlerThreadWrapper(int name) {
-      HandlerThread handlerThread = new android.os.HandlerThread(THREAD_PREFIX + name);
+    public HandlerThreadWrapper(String suffix) {
+      HandlerThread handlerThread = new android.os.HandlerThread(
+          THREAD_PREFIX + (TextUtils.isEmpty(suffix) ? "" : "_" + suffix));
       handlerThread.start();
       handler = new Handler(handlerThread.getLooper());
     }

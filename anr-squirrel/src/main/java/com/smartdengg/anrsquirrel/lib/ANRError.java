@@ -1,7 +1,6 @@
 package com.smartdengg.anrsquirrel.lib;
 
 import android.os.Looper;
-import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
 
@@ -9,32 +8,9 @@ import java.util.List;
 
   private static final long serialVersionUID = -7971806470616989034L;
 
-  private static class Inner implements Serializable {
-    private static final long serialVersionUID = -1669800781514807253L;
-    private final String threadName;
-    private final StackTraceElement[] threadStackTrace;
+  private static final Thread mainThread = Looper.getMainLooper().getThread();
 
-    private Inner(String name, StackTraceElement[] stackTrace) {
-      threadName = name;
-      threadStackTrace = stackTrace;
-    }
-
-    private class ThreadThrowable extends Throwable {
-      private static final long serialVersionUID = -2092890922495326064L;
-
-      private ThreadThrowable(ThreadThrowable throwable) {
-        super(threadName, throwable);
-      }
-
-      @Override public Throwable fillInStackTrace() {
-        setStackTrace(threadStackTrace);
-        return this;
-      }
-    }
-  }
-
-  // TODO: 2016/7/18 转换首字母大写
-  private ANRError(Inner.ThreadThrowable throwable) {
+  private ANRError(ANRThrowable throwable) {
     super(Thread.currentThread().getName() + "Application Not Responding", throwable);
   }
 
@@ -45,14 +21,11 @@ import java.util.List;
 
   static ANRError allThread() {
 
-    final Thread mainThread = Looper.getMainLooper().getThread();
-    Inner.ThreadThrowable throwable = null;
+    ANRThrowable throwable = null;
 
     ThreadGroup rootGroup = Thread.currentThread().getThreadGroup();
     ThreadGroup parentGroup;
     while ((parentGroup = rootGroup.getParent()) != null) rootGroup = parentGroup;
-
-    rootGroup.list();
 
     Thread[] threads = new Thread[rootGroup.activeCount()];
     while (rootGroup.enumerate(threads, true) == threads.length) {
@@ -62,15 +35,9 @@ import java.util.List;
     List<Thread> threadList = Arrays.asList(threads);
     if (!threadList.contains(mainThread)) {
       threads = insertElement(threads, mainThread, 0);
-    } /*else {
+    } else {
       int i = threadList.indexOf(mainThread);
       threads[i] = Looper.getMainLooper().getThread();
-    }*/
-
-    for (int i = 0; i < threads.length; i++) {
-
-      if (threads[i] == null) continue;
-      if (threads[i].getId() == mainThread.getId()) threads[i] = mainThread;
     }
 
     for (Thread thread : threads) {
@@ -84,21 +51,10 @@ import java.util.List;
       String name = getThreadTitle(thread);
       StackTraceElement[] stackTraceElements = thread.getStackTrace();
 
-      if (thread.getName().startsWith(ANRSquirrel.currentThread().getName())) {
-        throwable = new Inner(name, new StackTraceElement[] {}).new ThreadThrowable(throwable);
-      } else if (thread.getId() == mainThread.getId()) {
-
-        StackTraceElement[] threadStackTrace = thread.getStackTrace();
-        for (StackTraceElement stackTraceElement : threadStackTrace)
-          System.out.println("threadStackTrace: --->" + stackTraceElement);
-
-        StackTraceElement[] stackTrace = mainThread.getStackTrace();
-        for (StackTraceElement stackTraceElement : stackTrace)
-          System.out.println("stackTraceElement: --->" + stackTraceElement);
-
-        throwable = new Inner(name, stackTrace).new ThreadThrowable(throwable);
+      if (thread.getId() == mainThread.getId()) {
+        throwable = new ANRThrowable(name, throwable, mainThread.getStackTrace());
       } else {
-        throwable = new Inner(name, stackTraceElements).new ThreadThrowable(throwable);
+        throwable = new ANRThrowable(name, throwable, stackTraceElements);
       }
     }
 
@@ -108,10 +64,10 @@ import java.util.List;
   /**
    * @hide
    */
-  ANRError New(String prefix, boolean logThreadsWithoutStackTrace) {
+ /* ANRError New(String prefix, boolean logThreadsWithoutStackTrace) {
 
     final Thread mainThread = Looper.getMainLooper().getThread();
-    Inner.ThreadThrowable throwable = null;
+    _$1._$2 throwable = null;
 
     ThreadGroup rootGroup = Thread.currentThread().getThreadGroup();
     ThreadGroup parentGroup;
@@ -138,12 +94,11 @@ import java.util.List;
 
       String name = getThreadTitle(thread);
       StackTraceElement[] stackTraceElements = thread.getStackTrace();
-      throwable = new Inner(name, stackTraceElements).new ThreadThrowable(throwable);
+      throwable = new _$1(name, stackTraceElements).new _$2(throwable);
     }
 
     return new ANRError(throwable);
-  }
-
+  }*/
   private static Thread[] insertElement(Thread original[], Thread element, int index) {
     int length = original.length;
     Thread destination[] = new Thread[length + 1];
@@ -157,11 +112,10 @@ import java.util.List;
     final Thread mainThread = Looper.getMainLooper().getThread();
     final StackTraceElement[] mainStackTrace = mainThread.getStackTrace();
 
-    return new ANRError(
-        new Inner(getThreadTitle(mainThread), mainStackTrace).new ThreadThrowable(null));
+    return new ANRError(new ANRThrowable(getThreadTitle(mainThread), null, mainStackTrace));
   }
 
   private static String getThreadTitle(Thread thread) {
-    return thread.getName() + " (state = " + thread.getState() + ")";
+    return thread.getName() + " [state = " + thread.getState() + "]";
   }
 }
