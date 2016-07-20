@@ -23,6 +23,10 @@ public class MyApplication extends Application {
 
   @Override public void onCreate() {
     super.onCreate();
-    new ANRSquirrel.Builder().interval(1000).listener(listener).ignoreDebugger().build();
+    new ANRSquirrel.Builder().interval(1000)
+        .listener(listener)
+        .ignoreDebugger()
+        .isDebuggable(BuildConfig.DEBUG)
+        .build();
   }
 }

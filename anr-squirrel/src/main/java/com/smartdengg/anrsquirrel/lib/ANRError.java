@@ -37,11 +37,12 @@ import java.util.List;
       threads = insertElement(threads, mainThread, 0);
     } else {
       int i = threadList.indexOf(mainThread);
-      threads[i] = Looper.getMainLooper().getThread();
+      threads[i] = mainThread;
     }
 
     for (Thread thread : threads) {
       if (thread == null) continue;
+      if (thread.getName().startsWith(HandlerFactory.THREAD_PREFIX)) continue;
 
       boolean logThreadStackTrace =
           (mainThread.getId() == thread.getId() || thread.getStackTrace().length > 0);
@@ -61,44 +62,6 @@ import java.util.List;
     return new ANRError(throwable);
   }
 
-  /**
-   * @hide
-   */
- /* ANRError New(String prefix, boolean logThreadsWithoutStackTrace) {
-
-    final Thread mainThread = Looper.getMainLooper().getThread();
-    _$1._$2 throwable = null;
-
-    ThreadGroup rootGroup = Thread.currentThread().getThreadGroup();
-    ThreadGroup parentGroup;
-    while ((parentGroup = rootGroup.getParent()) != null) rootGroup = parentGroup;
-
-    Thread[] threads = new Thread[rootGroup.activeCount()];
-    while (rootGroup.enumerate(threads, true) == threads.length) {
-      threads = new Thread[(int) (threads.length * 1.5)];
-    }
-
-    if (!Arrays.asList(threads).contains(mainThread)) {
-      threads = insertElement(threads, mainThread, 0);
-    }
-
-    for (Thread thread : threads) {
-      if (thread == null) continue;
-
-      boolean logThreadStackTrace =
-          mainThread.getId() == thread.getId() || (thread.getName().startsWith(prefix) && (
-              logThreadsWithoutStackTrace
-                  || thread.getStackTrace().length > 0));
-
-      if (!logThreadStackTrace) continue;
-
-      String name = getThreadTitle(thread);
-      StackTraceElement[] stackTraceElements = thread.getStackTrace();
-      throwable = new _$1(name, stackTraceElements).new _$2(throwable);
-    }
-
-    return new ANRError(throwable);
-  }*/
   private static Thread[] insertElement(Thread original[], Thread element, int index) {
     int length = original.length;
     Thread destination[] = new Thread[length + 1];

@@ -12,7 +12,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public class HandlerFactory {
 
-  private static final String THREAD_PREFIX = "|ANRSquirrel|";
+  static final String THREAD_PREFIX = "|ANRSquirrel|";
 
   private HandlerFactory() {
     throw new IllegalStateException("No instance!");

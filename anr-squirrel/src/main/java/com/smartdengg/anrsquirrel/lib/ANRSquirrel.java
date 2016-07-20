@@ -21,23 +21,26 @@ import org.jetbrains.annotations.NotNull;
 
   private final SquirrelListener listener;
 
-  ANRSquirrel(int interval, boolean shouldIgnoreDebugger, boolean onlyMainThread,
+  ANRSquirrel(int interval, boolean ignoreDebugger, boolean debuggable, boolean onlyMainThread,
       SquirrelListener listener) {
     this.listener = listener;
 
-    Looper.getMainLooper()
-        .setMessageLogging(
-            new SquirrelPrinter(interval, shouldIgnoreDebugger, new SquirrelPrinter.Callback() {
-              @Override public void onBlockOccur(ANRError anrError) {
-                LISTENER_OF_SOULS.onAppNotResponding(anrError);
-              }
-            }));
+    if (debuggable) {
+      Looper.getMainLooper()
+          .setMessageLogging(new SquirrelPrinter(interval, ignoreDebugger, onlyMainThread,
+              new SquirrelPrinter.Callback() {
+                @Override public void onBlockOccur(ANRError anrError) {
+                  LISTENER_OF_SOULS.onAppNotResponding(anrError);
+                }
+              }));
+    }
   }
 
   @SuppressWarnings("UnusedDeclaration") public static class Builder {
 
     private int interval;
     private boolean shouldIgnoreDebugger;
+    private boolean debuggable;
     private boolean onlyMainThread;
     private SquirrelListener listener;
 
@@ -51,6 +54,11 @@ import org.jetbrains.annotations.NotNull;
 
     public Builder ignoreDebugger() {
       this.shouldIgnoreDebugger = true;
+      return Builder.this;
+    }
+
+    public Builder isDebuggable(boolean debuggable) {
+      this.debuggable = debuggable;
       return Builder.this;
     }
 
@@ -69,7 +77,7 @@ import org.jetbrains.annotations.NotNull;
       if (interval < 0) throw new IllegalArgumentException("interval cannot less than 0");
 
       return new ANRSquirrel(interval != 0 ? interval : DEFAULT_ANR_TIMEOUT, shouldIgnoreDebugger,
-          onlyMainThread, listener);
+          debuggable, onlyMainThread, listener);
     }
   }
 }

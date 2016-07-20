@@ -23,6 +23,7 @@ class SquirrelPrinter implements Printer {
   private volatile long stopNanos;
   private long interval;
   private boolean shouldIgnoreDebugger;
+  private boolean onlyMainThread;
   private final Handler ANRHandler;
   private final Handler checkLockHandler;
   private ANRError anrError;
@@ -30,7 +31,11 @@ class SquirrelPrinter implements Printer {
   private Runnable ANRRunnable = new Runnable() {
     @Override public void run() {
 
-      anrError = ANRError.allThread();
+      if (onlyMainThread) {
+        anrError = ANRError.onlyMainThread();
+      } else {
+        anrError = ANRError.allThread();
+      }
 
       if (isDumping.get()) checkLockHandler.postDelayed(checkLockRunnable, (long) (interval * 0.3));
 
@@ -47,12 +52,14 @@ class SquirrelPrinter implements Printer {
     }
   };
 
-  public SquirrelPrinter(int interval, boolean shouldIgnoreDebugger, Callback callback) {
+  public SquirrelPrinter(int interval, boolean shouldIgnoreDebugger, boolean onlyMainThread,
+      Callback callback) {
     this.interval = interval;
     this.shouldIgnoreDebugger = shouldIgnoreDebugger;
+    this.onlyMainThread = onlyMainThread;
     this.callback = callback;
-    this.ANRHandler = HandlerFactory.createdHandler();
-    this.checkLockHandler = HandlerFactory.createdHandler();
+    this.ANRHandler = HandlerFactory.createdHandler("ANRHandler");
+    this.checkLockHandler = HandlerFactory.createdHandler("CheckLockHandler");
   }
 
   @Override public void println(String x) {
@@ -68,7 +75,6 @@ class SquirrelPrinter implements Printer {
       this.ANRHandler.postDelayed(ANRRunnable, (long) (interval * 0.8));
     } else if (isEnd(x)) {
       SquirrelPrinter.this.stopNanos = System.nanoTime();
-
 
       isDumping.set(false);
 
