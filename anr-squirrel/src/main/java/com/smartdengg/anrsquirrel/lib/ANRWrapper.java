@@ -5,12 +5,12 @@ package com.smartdengg.anrsquirrel.lib;
  * 作者:  SmartDengg <br>
  * 描述:
  */
-class ANRThrowable extends Throwable {
+class ANRWrapper extends Throwable {
   private static final long serialVersionUID = -5395891642242998310L;
 
   private final StackTraceElement[] threadStackTrace;
 
-  ANRThrowable(String threadName, Throwable throwable, StackTraceElement[] stackTrace) {
+  ANRWrapper(String threadName, Throwable throwable, StackTraceElement[] stackTrace) {
     super(threadName, throwable);
     threadStackTrace = stackTrace;
     this.fillInStackTrace();
