@@ -1,6 +1,10 @@
 package com.smartdengg.anrsquirrel.lib;
 
 import android.os.Looper;
+import android.util.Printer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("UnusedDeclaration") public class ANRSquirrel {
@@ -21,18 +25,40 @@ import org.jetbrains.annotations.NotNull;
 
   private final SquirrelListener listener;
 
+  private class ParentPrinter implements Printer {
+
+    private final List<Printer> mPrinters;
+
+    public ParentPrinter(List<Printer> printers) {
+      mPrinters = printers;
+    }
+
+    @Override public void println(String x) {
+      for (Printer printer : mPrinters)
+        printer.println(x);
+    }
+  }
+
   ANRSquirrel(int interval, boolean ignoreDebugger, boolean debuggable, boolean onlyMainThread,
-      SquirrelListener listener) {
+      List<Printer> printerList, SquirrelListener listener) {
     this.listener = listener;
 
     if (debuggable) {
+
+      int builtInPrinters = 1;
+      int printerCount = (printerList != null ? printerList.size() : 0);
+      List<Printer> allPrinters = new ArrayList<>(builtInPrinters + printerCount);
+
+      if (printerList != null) allPrinters.addAll(printerList);
+      allPrinters.add(new SquirrelPrinter(interval, ignoreDebugger, onlyMainThread,
+          new SquirrelPrinter.Callback() {
+            @Override public void onBlockOccur(ANRError anrError) {
+              LISTENER_OF_SOULS.onAppNotResponding(anrError);
+            }
+          }));
+
       Looper.getMainLooper()
-          .setMessageLogging(new SquirrelPrinter(interval, ignoreDebugger, onlyMainThread,
-              new SquirrelPrinter.Callback() {
-                @Override public void onBlockOccur(ANRError anrError) {
-                  LISTENER_OF_SOULS.onAppNotResponding(anrError);
-                }
-              }));
+          .setMessageLogging(new ParentPrinter(Collections.unmodifiableList(allPrinters)));
     }
   }
 
@@ -43,6 +69,7 @@ import org.jetbrains.annotations.NotNull;
     private boolean debuggable;
     private boolean onlyMainThread;
     private SquirrelListener listener;
+    private List<Printer> mPrinterList;
 
     public Builder() {
     }
@@ -72,12 +99,27 @@ import org.jetbrains.annotations.NotNull;
       return Builder.this;
     }
 
+    public Builder injectPrinter(Printer printer) {
+
+      if (printer == null) throw new NullPointerException("printer == null");
+
+      if (mPrinterList == null) mPrinterList = new ArrayList<>();
+
+      if (mPrinterList.contains(printer)) {
+        throw new IllegalStateException("Printer already injected.");
+      }
+
+      this.mPrinterList.add(printer);
+
+      return Builder.this;
+    }
+
     public ANRSquirrel build() {
 
       if (interval < 0) throw new IllegalArgumentException("interval cannot less than 0");
 
       return new ANRSquirrel(interval != 0 ? interval : DEFAULT_ANR_TIMEOUT, shouldIgnoreDebugger,
-          debuggable, onlyMainThread, listener);
+          debuggable, onlyMainThread, mPrinterList, listener);
     }
   }
 }

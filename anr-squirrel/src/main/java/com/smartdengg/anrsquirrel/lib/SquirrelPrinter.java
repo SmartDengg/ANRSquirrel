@@ -64,7 +64,7 @@ class SquirrelPrinter implements Printer {
 
   @Override public void println(String x) {
 
-    if (isStart(x)) {
+    if (this.isStart(x)) {
       SquirrelPrinter.this.startNanos = System.nanoTime();
 
       if (isDumping.get()) return;
@@ -73,12 +73,12 @@ class SquirrelPrinter implements Printer {
       this.ANRHandler.removeCallbacks(ANRRunnable);
       this.checkLockHandler.removeCallbacks(checkLockRunnable);
       this.ANRHandler.postDelayed(ANRRunnable, (long) (interval * 0.8));
-    } else if (isEnd(x)) {
+    } else if (this.isEnd(x)) {
       SquirrelPrinter.this.stopNanos = System.nanoTime();
 
       isDumping.set(false);
 
-      if (!isBlock()) {
+      if (!isBlocked()) {
         this.ANRHandler.removeCallbacks(ANRRunnable);
         this.checkLockHandler.removeCallbacks(checkLockRunnable);
       } else {
@@ -95,7 +95,7 @@ class SquirrelPrinter implements Printer {
     return !TextUtils.isEmpty(message) && message.startsWith(END_SIGNAL);
   }
 
-  private boolean isBlock() {
+  private boolean isBlocked() {
     long lengthMillis =
         TimeUnit.NANOSECONDS.toMillis(stopNanos) - TimeUnit.NANOSECONDS.toMillis(startNanos);
     return !(lengthMillis <= interval || !shouldIgnoreDebugger && Debug.isDebuggerConnected());

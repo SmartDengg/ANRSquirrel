@@ -10,7 +10,7 @@ import java.util.List;
 
   private static final Thread mainThread = Looper.getMainLooper().getThread();
 
-  private ANRError(ANRThrowable throwable) {
+  private ANRError(ANRWrapper throwable) {
     super(Thread.currentThread().getName() + "Application Not Responding", throwable);
   }
 
@@ -21,7 +21,7 @@ import java.util.List;
 
   static ANRError allThread() {
 
-    ANRThrowable throwable = null;
+    ANRWrapper throwable = null;
 
     ThreadGroup rootGroup = Thread.currentThread().getThreadGroup();
     ThreadGroup parentGroup;
@@ -53,9 +53,9 @@ import java.util.List;
       StackTraceElement[] stackTraceElements = thread.getStackTrace();
 
       if (thread.getId() == mainThread.getId()) {
-        throwable = new ANRThrowable(name, throwable, mainThread.getStackTrace());
+        throwable = new ANRWrapper(name, throwable, mainThread.getStackTrace());
       } else {
-        throwable = new ANRThrowable(name, throwable, stackTraceElements);
+        throwable = new ANRWrapper(name, throwable, stackTraceElements);
       }
     }
 
@@ -75,7 +75,7 @@ import java.util.List;
     final Thread mainThread = Looper.getMainLooper().getThread();
     final StackTraceElement[] mainStackTrace = mainThread.getStackTrace();
 
-    return new ANRError(new ANRThrowable(getThreadTitle(mainThread), null, mainStackTrace));
+    return new ANRError(new ANRWrapper(getThreadTitle(mainThread), null, mainStackTrace));
   }
 
   private static String getThreadTitle(Thread thread) {
