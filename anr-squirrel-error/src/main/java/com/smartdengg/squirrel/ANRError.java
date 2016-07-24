@@ -1,14 +1,11 @@
-package com.smartdengg.anrsquirrel.lib;
+package com.smartdengg.squirrel;
 
-import android.os.Looper;
 import java.util.Arrays;
 import java.util.List;
 
 @SuppressWarnings({ "Convert2Diamond", "UnusedDeclaration" }) public class ANRError extends Error {
 
   private static final long serialVersionUID = -7971806470616989034L;
-
-  private static final Thread mainThread = Looper.getMainLooper().getThread();
 
   private ANRError(ANRThrowable throwable) {
     super(Thread.currentThread().getName() + "Application Not Responding", throwable);
@@ -19,7 +16,13 @@ import java.util.List;
     return this;
   }
 
-  static ANRError allThread() {
+  public static ANRError dumpStackTrace(Thread mainThread, boolean onlyMainThread,
+      String threadPrefix) {
+
+    if (onlyMainThread) {
+      return new ANRError(
+          new ANRThrowable(generatorThreadTitle(mainThread), null, mainThread.getStackTrace()));
+    }
 
     ANRThrowable throwable = null;
 
@@ -42,14 +45,14 @@ import java.util.List;
 
     for (Thread thread : threads) {
       if (thread == null) continue;
-      if (thread.getName().startsWith(HandlerFactory.THREAD_PREFIX)) continue;
+      if (thread.getName().startsWith(threadPrefix)) continue;
 
       boolean logThreadStackTrace =
           (mainThread.getId() == thread.getId() || thread.getStackTrace().length > 0);
 
       if (!logThreadStackTrace) continue;
 
-      String name = getThreadTitle(thread);
+      String name = generatorThreadTitle(thread);
       StackTraceElement[] stackTraceElements = thread.getStackTrace();
 
       if (thread.getId() == mainThread.getId()) {
@@ -71,14 +74,7 @@ import java.util.List;
     return destination;
   }
 
-  static ANRError onlyMainThread() {
-    final Thread mainThread = Looper.getMainLooper().getThread();
-    final StackTraceElement[] mainStackTrace = mainThread.getStackTrace();
-
-    return new ANRError(new ANRThrowable(getThreadTitle(mainThread), null, mainStackTrace));
-  }
-
-  private static String getThreadTitle(Thread thread) {
+  private static String generatorThreadTitle(Thread thread) {
     return thread.getName() + " [state = " + thread.getState() + "]";
   }
 }

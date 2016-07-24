@@ -1,1 +1,1 @@
-include ':app', ':anr-squirrel'
+include ':app', ':anr-squirrel', ':anr-squirrel-error', ':anr-squirrel-android'

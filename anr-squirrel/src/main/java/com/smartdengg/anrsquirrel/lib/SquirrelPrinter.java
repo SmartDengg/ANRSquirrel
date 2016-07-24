@@ -1,9 +1,13 @@
 package com.smartdengg.anrsquirrel.lib;
 
-import android.os.Debug;
+import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
 import android.text.TextUtils;
+import android.util.Log;
 import android.util.Printer;
+import com.smartdengg.squirrel.ANRError;
+import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -14,30 +18,32 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 class SquirrelPrinter implements Printer {
 
+  private static final String TAG = SquirrelPrinter.class.getSimpleName();
   public static final String START_SIGNAL = ">>>>>";
   public static final String END_SIGNAL = "<<<<<";
+  private static final String CALLBACK = "CALLBACK";
+  private static final String ERROR = "ERROR";
 
   private AtomicBoolean isDumping = new AtomicBoolean(false);
 
   private volatile long startNanos;
   private volatile long stopNanos;
   private long interval;
-  private boolean shouldIgnoreDebugger;
   private boolean onlyMainThread;
   private final Handler ANRHandler;
-  private final Handler checkLockHandler;
+  private final Handler deadLockHandler;
   private ANRError anrError;
   private Callback callback;
   private Runnable ANRRunnable = new Runnable() {
     @Override public void run() {
 
       if (onlyMainThread) {
-        anrError = ANRError.onlyMainThread();
+        anrError = ANRErrorFactory.onlyMainThread();
       } else {
-        anrError = ANRError.allThread();
+        anrError = ANRErrorFactory.allThread();
       }
 
-      if (isDumping.get()) checkLockHandler.postDelayed(checkLockRunnable, (long) (interval * 0.3));
+      if (isDumping.get()) deadLockHandler.postDelayed(deadLockRunnable, interval * 2);
 
       /*String name = Thread.currentThread().getName();
       if (!name.contains("dalvik") && !name.contains("java") && !name.contains("com.android")) {
@@ -46,63 +52,89 @@ class SquirrelPrinter implements Printer {
     }
   };
 
-  private Runnable checkLockRunnable = new Runnable() {
+  private Runnable deadLockRunnable = new Runnable() {
     @Override public void run() {
-      if (isDumping.get() && callback != null) callback.onBlockOccur(anrError);
+      if (isDumping.get()) {
+        Log.w(TAG, "From deadLockRunnable");
+        SquirrelPrinter.this.sendWrapperMessage(anrError, (long) (interval * 0.5));
+      }
     }
   };
 
-  public SquirrelPrinter(int interval, boolean shouldIgnoreDebugger, boolean onlyMainThread,
-      Callback callback) {
+  @SuppressWarnings("HandlerLeak") static final Handler HANDLER =
+      new Handler(HandlerFactory.getErrorHandler().getLooper()) {
+        @Override public void handleMessage(Message msg) {
+          Bundle bundle = msg.getData();
+          SquirrelPrinter.Callback callback = (SquirrelPrinter.Callback) bundle.get(CALLBACK);
+          ANRError anrError = (ANRError) bundle.get(ERROR);
+          if (callback != null && anrError != null) callback.onBlocked(anrError);
+        }
+      };
+
+  SquirrelPrinter(int interval, boolean onlyMainThread, Callback callback) {
     this.interval = interval;
-    this.shouldIgnoreDebugger = shouldIgnoreDebugger;
     this.onlyMainThread = onlyMainThread;
     this.callback = callback;
-    this.ANRHandler = HandlerFactory.createdHandler("ANRHandler");
-    this.checkLockHandler = HandlerFactory.createdHandler("CheckLockHandler");
+    this.ANRHandler = HandlerFactory.getANRHandler();
+    this.deadLockHandler = HandlerFactory.getCheckLockHandler();
   }
 
   @Override public void println(String x) {
 
-    if (isStart(x)) {
-      SquirrelPrinter.this.startNanos = System.nanoTime();
+    if (this.isDispatching(x)) {
 
+      this.startNanos = System.nanoTime();
       if (isDumping.get()) return;
       isDumping.set(true);
 
-      this.ANRHandler.removeCallbacks(ANRRunnable);
-      this.checkLockHandler.removeCallbacks(checkLockRunnable);
-      this.ANRHandler.postDelayed(ANRRunnable, (long) (interval * 0.8));
-    } else if (isEnd(x)) {
-      SquirrelPrinter.this.stopNanos = System.nanoTime();
+      this.startDumping();
+    } else if (this.isFinished(x)) {
 
+      this.stopNanos = System.nanoTime();
       isDumping.set(false);
 
-      if (!isBlock()) {
-        this.ANRHandler.removeCallbacks(ANRRunnable);
-        this.checkLockHandler.removeCallbacks(checkLockRunnable);
-      } else {
-        if (callback != null) callback.onBlockOccur(anrError);
+      this.stopDumping();
+      if (isBlock()) {
+        this.sendWrapperMessage(anrError, (long) (interval * 0.5));
       }
     }
   }
 
-  private boolean isStart(String message) {
+  private void sendWrapperMessage(ANRError error, long delayMillis) {
+    Message message = HANDLER.obtainMessage();
+    Bundle bundle = new Bundle();
+    bundle.putSerializable(CALLBACK, callback);
+    bundle.putSerializable(ERROR, error);
+    message.setData(bundle);
+    HANDLER.sendMessageDelayed(message, delayMillis);
+  }
+
+  private void startDumping() {
+    this.stopDumping();
+    this.ANRHandler.postDelayed(ANRRunnable, (long) (interval * 0.8));
+  }
+
+  private void stopDumping() {
+    this.ANRHandler.removeCallbacks(ANRRunnable);
+    this.deadLockHandler.removeCallbacks(deadLockRunnable);
+  }
+
+  private boolean isDispatching(String message) {
     return !TextUtils.isEmpty(message) && message.startsWith(START_SIGNAL);
   }
 
-  private boolean isEnd(String message) {
+  private boolean isFinished(String message) {
     return !TextUtils.isEmpty(message) && message.startsWith(END_SIGNAL);
   }
 
   private boolean isBlock() {
     long lengthMillis =
         TimeUnit.NANOSECONDS.toMillis(stopNanos) - TimeUnit.NANOSECONDS.toMillis(startNanos);
-    return !(lengthMillis <= interval || !shouldIgnoreDebugger && Debug.isDebuggerConnected());
+    return lengthMillis > interval;
   }
 
-  interface Callback {
+  interface Callback extends Serializable {
 
-    void onBlockOccur(ANRError anrError);
+    void onBlocked(ANRError anrError);
   }
 }

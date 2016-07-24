@@ -1,9 +1,9 @@
 package com.smartdengg.anrsquirrel.example;
 
 import android.app.Application;
-import com.smartdengg.anrsquirrel.lib.ANRError;
 import com.smartdengg.anrsquirrel.lib.ANRSquirrel;
 import com.smartdengg.anrsquirrel.lib.SquirrelListener;
+import com.smartdengg.squirrel.ANRError;
 
 /**
  * Created by SmartDengg on 2016/7/18.
@@ -23,10 +23,10 @@ public class MyApplication extends Application {
 
   @Override public void onCreate() {
     super.onCreate();
-    new ANRSquirrel.Builder().interval(1000)
-        .listener(listener)
-        .ignoreDebugger()
-        .isDebuggable(BuildConfig.DEBUG)
-        .build();
+
+    ANRSquirrel anrSquirrel =
+        new ANRSquirrel.Builder(MyApplication.this).interval(1000).listener(listener).build();
+    /*Start detector*/
+    anrSquirrel.start();
   }
 }

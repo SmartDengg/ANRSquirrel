@@ -1,10 +1,5 @@
-package com.smartdengg.anrsquirrel.lib;
+package com.smartdengg.squirrel;
 
-/**
- * 创建时间:  16/7/20 下午4:34 <br>
- * 作者:  SmartDengg <br>
- * 描述:
- */
 class ANRThrowable extends Throwable {
   private static final long serialVersionUID = -5395891642242998310L;
 
