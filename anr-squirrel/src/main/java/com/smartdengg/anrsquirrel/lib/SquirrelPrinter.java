@@ -56,7 +56,7 @@ class SquirrelPrinter implements Printer {
     @Override public void run() {
       if (isDumping.get()) {
         Log.w(TAG, "From deadLockRunnable");
-        SquirrelPrinter.this.sendWrapperMessage(anrError, (long) (interval * 0.5));
+        SquirrelPrinter.this.sendWrapperMessageDelay(anrError, (long) (interval * 0.5));
       }
     }
   };
@@ -95,12 +95,12 @@ class SquirrelPrinter implements Printer {
 
       this.stopDumping();
       if (isBlock()) {
-        this.sendWrapperMessage(anrError, (long) (interval * 0.5));
+        this.sendWrapperMessageDelay(anrError, (long) (interval * 0.5));
       }
     }
   }
 
-  private void sendWrapperMessage(ANRError error, long delayMillis) {
+  private void sendWrapperMessageDelay(ANRError error, long delayMillis) {
     Message message = HANDLER.obtainMessage();
     Bundle bundle = new Bundle();
     bundle.putSerializable(CALLBACK, callback);
