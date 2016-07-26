@@ -11,9 +11,11 @@ import com.smartdengg.squirrel.ANRError;
 public class MyApplication extends Application {
 
   private SquirrelListener listener = new SquirrelListener() {
+    private static final long serialVersionUID = -8753541650745626066L;
+
     @Override public void onAppNotResponding(ANRError error) {
-      throw error;
-      //error.printStackTrace();
+      //throw error;
+      error.printStackTrace();
     }
 
     @Override public void onInterrupted(InterruptedException exception) {
@@ -27,6 +29,6 @@ public class MyApplication extends Application {
     ANRSquirrel anrSquirrel =
         new ANRSquirrel.Builder(MyApplication.this).interval(1000).listener(listener).build();
     /*Start detector*/
-    anrSquirrel.start();
+    anrSquirrel.show();
   }
 }

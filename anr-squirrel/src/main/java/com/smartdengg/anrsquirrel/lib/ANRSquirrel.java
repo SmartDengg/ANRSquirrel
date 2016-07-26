@@ -1,22 +1,30 @@
 package com.smartdengg.anrsquirrel.lib;
 
 import android.content.Context;
+import android.os.Bundle;
 import android.os.Debug;
+import android.os.Handler;
 import android.os.Looper;
+import android.os.Message;
 import android.util.Log;
 import com.smartdengg.squirrel.ANRError;
-import java.lang.ref.WeakReference;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @SuppressWarnings("UnusedDeclaration") public class ANRSquirrel {
 
   private static final String TAG = ANRSquirrel.class.getSimpleName();
   private static final int DEFAULT_ANR_TIMEOUT = 10 * 1000;
-  private AtomicBoolean isStarted = new AtomicBoolean(false);
+  private static final int DEFAULT_SHOW_TIME = 1000;
+  private static final String LISTENER = "LISTENER";
+  private static final String ERROR = "ERROR";
+  private Handler UiHandler = new Handler(Looper.getMainLooper());
 
-  private WeakReference<SquirrelPrinter> printerWeakReference;
+  private AtomicBoolean isStarted = new AtomicBoolean(false);
+  private SquirrelMarble squirrelMarble;
 
   private final SquirrelListener LISTENER_OF_SOULS = new SquirrelListener() {
+    private static final long serialVersionUID = 7709345094663791741L;
+
     @Override public void onAppNotResponding(ANRError error) {
       if (!ignoreDebugger && Debug.isDebuggerConnected()) {
         this.onDebuggerConnected();
@@ -35,6 +43,28 @@ import java.util.concurrent.atomic.AtomicBoolean;
     }
   };
 
+  private static Handler HANDLER = new Handler(HandlerFactory.getErrorHandler().getLooper()) {
+    @Override public void handleMessage(Message msg) {
+      Bundle bundle = msg.getData();
+      SquirrelListener squirrelListener = (SquirrelListener) bundle.get(LISTENER);
+      ANRError anrError = (ANRError) bundle.get(ERROR);
+      if (squirrelListener != null && anrError != null) {
+        squirrelListener.onAppNotResponding(anrError);
+      }
+    }
+  };
+
+  private Runnable updateRunnable = new Runnable() {
+    @Override public void run() {
+      if (squirrelMarble != null) squirrelMarble.update();
+    }
+  };
+  private Runnable resetRunnable = new Runnable() {
+    @Override public void run() {
+      if (squirrelMarble != null) squirrelMarble.reset();
+    }
+  };
+
   private final Context context;
   private int interval;
   private boolean onlyMainThread;
@@ -50,18 +80,43 @@ import java.util.concurrent.atomic.AtomicBoolean;
     this.listener = listener;
   }
 
-  public void start() {
+  public void show() {
 
     if (isStarted.get()) throw new IllegalStateException("ANRSquirrel detector already started.");
     isStarted.set(true);
 
+    squirrelMarble = SquirrelMarble.initWith(context);
+    squirrelMarble.show();
+
     Looper.getMainLooper()
         .setMessageLogging(
             new SquirrelPrinter(interval, onlyMainThread, new SquirrelPrinter.Callback() {
-              @Override public void onBlocked(ANRError anrError) {
-                LISTENER_OF_SOULS.onAppNotResponding(anrError);
+              private static final long serialVersionUID = -4595328905012011071L;
+
+              @Override public void onPreBlocking() {
+                UiHandler.removeCallbacks(updateRunnable);
+                UiHandler.post(updateRunnable);
+              }
+
+              @Override public void onBlockOccur(ANRError anrError, boolean isDeadLock) {
+                ANRSquirrel.this.sendWrapperMessageWithDelay(anrError,
+                    isDeadLock ? 0 : (long) (interval * 0.5));
+              }
+
+              @Override public void onBlocked() {
+                UiHandler.removeCallbacks(resetRunnable);
+                UiHandler.postDelayed(resetRunnable, DEFAULT_SHOW_TIME);
               }
             }));
+  }
+
+  private void sendWrapperMessageWithDelay(ANRError error, long delayMillis) {
+    Message message = HANDLER.obtainMessage();
+    Bundle bundle = new Bundle();
+    bundle.putSerializable(LISTENER, LISTENER_OF_SOULS);
+    bundle.putSerializable(ERROR, error);
+    message.setData(bundle);
+    HANDLER.sendMessageDelayed(message, delayMillis);
   }
 
   public static ANRSquirrel initializeWithDefaults(final Context context) {

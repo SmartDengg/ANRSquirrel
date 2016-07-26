@@ -53,12 +53,12 @@ import butterknife.OnClick;
     ButterKnife.setDebug(true);
   }
 
-  @OnClick(R.id.btn) protected void onClick() {
+  @OnClick(R.id.btn_sleep) protected void onClick() {
     Log.e(TAG, "Begin waiting!");
     sleepAMinute();
   }
 
-  @OnClick(R.id.btn1) protected void onClick1() {
+  @OnClick(R.id.btn_deadlock) protected void onClick1() {
     Log.e(TAG, "Begin waiting!");
     this.deadLock();
   }

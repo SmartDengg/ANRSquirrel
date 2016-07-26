@@ -1,8 +1,6 @@
 package com.smartdengg.anrsquirrel.lib;
 
-import android.os.Bundle;
 import android.os.Handler;
-import android.os.Message;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.Printer;
@@ -56,20 +54,10 @@ class SquirrelPrinter implements Printer {
     @Override public void run() {
       if (isDumping.get()) {
         Log.w(TAG, "From deadLockRunnable");
-        SquirrelPrinter.this.sendWrapperMessageDelay(anrError, (long) (interval * 0.5));
+        if (callback != null) callback.onBlockOccur(anrError, true);
       }
     }
   };
-
-  @SuppressWarnings("HandlerLeak") static final Handler HANDLER =
-      new Handler(HandlerFactory.getErrorHandler().getLooper()) {
-        @Override public void handleMessage(Message msg) {
-          Bundle bundle = msg.getData();
-          SquirrelPrinter.Callback callback = (SquirrelPrinter.Callback) bundle.get(CALLBACK);
-          ANRError anrError = (ANRError) bundle.get(ERROR);
-          if (callback != null && anrError != null) callback.onBlocked(anrError);
-        }
-      };
 
   SquirrelPrinter(int interval, boolean onlyMainThread, Callback callback) {
     this.interval = interval;
@@ -95,18 +83,13 @@ class SquirrelPrinter implements Printer {
 
       this.stopDumping();
       if (isBlock()) {
-        this.sendWrapperMessageDelay(anrError, (long) (interval * 0.5));
+        if (callback != null) {
+          callback.onPreBlocking();
+          callback.onBlockOccur(anrError, false);
+          callback.onBlocked();
+        }
       }
     }
-  }
-
-  private void sendWrapperMessageDelay(ANRError error, long delayMillis) {
-    Message message = HANDLER.obtainMessage();
-    Bundle bundle = new Bundle();
-    bundle.putSerializable(CALLBACK, callback);
-    bundle.putSerializable(ERROR, error);
-    message.setData(bundle);
-    HANDLER.sendMessageDelayed(message, delayMillis);
   }
 
   private void startDumping() {
@@ -135,6 +118,10 @@ class SquirrelPrinter implements Printer {
 
   interface Callback extends Serializable {
 
-    void onBlocked(ANRError anrError);
+    void onPreBlocking();
+
+    void onBlockOccur(ANRError anrError, boolean isDeadLock);
+
+    void onBlocked();
   }
 }
