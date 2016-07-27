@@ -1,6 +1,7 @@
 package com.smartdengg.anrsquirrel.example;
 
 import android.app.Application;
+import android.graphics.Point;
 import com.smartdengg.anrsquirrel.lib.ANRSquirrel;
 import com.smartdengg.anrsquirrel.lib.SquirrelListener;
 import com.smartdengg.squirrel.ANRError;
@@ -26,8 +27,10 @@ public class MyApplication extends Application {
   @Override public void onCreate() {
     super.onCreate();
 
-    ANRSquirrel anrSquirrel =
-        new ANRSquirrel.Builder(MyApplication.this).interval(1000).listener(listener).build();
+    ANRSquirrel anrSquirrel = new ANRSquirrel.Builder(MyApplication.this).interval(1000)
+        .anchor(new Point(100, 100))
+        .listener(listener)
+        .build();
     /*Start detector*/
     anrSquirrel.show();
   }

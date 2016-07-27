@@ -1,13 +1,16 @@
-package com.smartdengg.anrsquirrel.lib;
+package com.smartdengg.anrsquirrel.lib.marble;
 
+import android.app.Application;
 import android.app.Service;
 import android.content.Context;
 import android.graphics.PixelFormat;
+import android.graphics.Point;
 import android.os.Build;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.WindowManager;
 import android.widget.ImageView;
+import com.smartdengg.anrsquirrel.lib.MarbleLifecycleCallback;
 import com.smartdengg.squirrellib.R;
 
 /**
@@ -16,15 +19,28 @@ import com.smartdengg.squirrellib.R;
 public class SquirrelMarble {
 
   private static SquirrelMarble instance;
-  private Context context;
+  private final Point marblePoint;
+  private final Context context;
 
   private ImageView marbleView;
   private WindowManager windowManager;
-  private MarbleTouchListener marbleTouchListener;
   private WindowManager.LayoutParams layoutParams;
+  private int lastX, lastY;
 
-  private SquirrelMarble(Context context) {
+  private MarbleLifecycleCallback.LifecycleListener lifecycleListener =
+      new MarbleLifecycleCallback.LifecycleListener() {
+        @Override public void onForeground() {
+          if (!isShowing()) SquirrelMarble.this.show();
+        }
+
+        @Override public void onBackground() {
+          if (isShowing()) SquirrelMarble.this.hide();
+        }
+      };
+
+  private SquirrelMarble(Context context, Point point) {
     this.context = context;
+    this.marblePoint = point;
     this.initOverlayMarble();
   }
 
@@ -40,8 +56,12 @@ public class SquirrelMarble {
     layoutParams.format = PixelFormat.TRANSLUCENT;
     layoutParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
     layoutParams.windowAnimations = android.R.style.Animation_Toast;
-    layoutParams.gravity = Gravity.CENTER | Gravity.TOP;
-    layoutParams.y = 100;
+    layoutParams.gravity = Gravity.START | Gravity.TOP;
+
+    Point displayPoint = new Point();
+    this.windowManager.getDefaultDisplay().getSize(displayPoint);
+    this.lastX = layoutParams.x = marblePoint.x < displayPoint.x ? marblePoint.x : displayPoint.x;
+    this.lastY = layoutParams.y = marblePoint.y < displayPoint.y ? marblePoint.y : displayPoint.y;
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
       layoutParams.type = WindowManager.LayoutParams.TYPE_TOAST;
@@ -49,15 +69,16 @@ public class SquirrelMarble {
       layoutParams.type = WindowManager.LayoutParams.TYPE_PHONE;
     }
 
-    this.marbleTouchListener = new MarbleTouchListener(layoutParams, windowManager);
-    marbleView.setOnTouchListener(marbleTouchListener);
+    MarbleTouchListener marbleTouchListener = new MarbleTouchListener(layoutParams, windowManager);
+    this.marbleView.setOnTouchListener(marbleTouchListener);
+    MarbleLifecycleCallback.INSTANCE.registerLifecycle((Application) context, lifecycleListener);
   }
 
-  public static SquirrelMarble initWith(Context context) {
+  public static SquirrelMarble initWith(Context context, Point point) {
     if (instance == null) {
       synchronized (SquirrelMarble.class) {
         if (instance == null) {
-          instance = new SquirrelMarble(context);
+          instance = new SquirrelMarble(context, point);
         }
       }
     }
@@ -65,7 +86,22 @@ public class SquirrelMarble {
   }
 
   public void show() {
+
+    this.layoutParams.x = lastX;
+    this.layoutParams.y = lastY;
+
     this.windowManager.addView(marbleView, layoutParams);
+  }
+
+  private void hide() {
+    if (this.marbleView.getParent() != null) this.windowManager.removeViewImmediate(marbleView);
+
+    this.lastX = layoutParams.x;
+    this.lastY = layoutParams.y;
+  }
+
+  private boolean isShowing() {
+    return marbleView.getParent() != null;
   }
 
   public void update() {

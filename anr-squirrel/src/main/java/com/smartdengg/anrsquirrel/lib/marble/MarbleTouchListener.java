@@ -1,4 +1,4 @@
-package com.smartdengg.anrsquirrel.lib;
+package com.smartdengg.anrsquirrel.lib.marble;
 
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -32,7 +32,6 @@ class MarbleTouchListener implements View.OnTouchListener {
   }
 
   @Override public boolean onTouch(View v, MotionEvent event) {
-
     if (gestureDetector != null) gestureDetector.onTouchEvent(event);
     switch (event.getAction()) {
       case MotionEvent.ACTION_DOWN:

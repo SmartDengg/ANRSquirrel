@@ -1,12 +1,14 @@
 package com.smartdengg.anrsquirrel.lib;
 
 import android.content.Context;
+import android.graphics.Point;
 import android.os.Bundle;
 import android.os.Debug;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
+import com.smartdengg.anrsquirrel.lib.marble.SquirrelMarble;
 import com.smartdengg.squirrel.ANRError;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -70,13 +72,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
   private boolean onlyMainThread;
   private boolean ignoreDebugger;
   private final SquirrelListener listener;
+  private Point marblePoint;
 
   private ANRSquirrel(Context context, int interval, boolean ignoreDebugger, boolean onlyMainThread,
-      SquirrelListener listener) {
+      Point point, SquirrelListener listener) {
     this.context = context;
     this.interval = interval;
     this.onlyMainThread = onlyMainThread;
     this.ignoreDebugger = ignoreDebugger;
+    this.marblePoint = point;
     this.listener = listener;
   }
 
@@ -85,7 +89,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
     if (isStarted.get()) throw new IllegalStateException("ANRSquirrel detector already started.");
     isStarted.set(true);
 
-    squirrelMarble = SquirrelMarble.initWith(context);
+    squirrelMarble = SquirrelMarble.initWith(context, marblePoint);
     squirrelMarble.show();
 
     Looper.getMainLooper()
@@ -130,6 +134,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
     private int interval = DEFAULT_ANR_TIMEOUT;
     private boolean ignoreDebugger;
     private boolean onlyMainThread;
+    private Point point;
     private SquirrelListener listener;
 
     public Builder(Context context) {
@@ -153,6 +158,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
       return Builder.this;
     }
 
+    public Builder anchor(Point point) {
+      if (point == null) {
+        throw new IllegalArgumentException("Point must not be null.");
+      }
+      if (point.x < 0) throw new IllegalStateException("x must not be less than 0");
+      if (point.y < 0) throw new IllegalStateException("x must not be less than 0");
+      this.point = point;
+      return Builder.this;
+    }
+
     public Builder listener(SquirrelListener listener) {
       if (listener == null) {
         throw new IllegalArgumentException("SquirrelListener must not be null.");
@@ -165,7 +180,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
     }
 
     public ANRSquirrel build() {
-      return new ANRSquirrel(context, interval, ignoreDebugger, onlyMainThread, listener);
+
+      if (point == null) point = new Point(10, 10);
+
+      return new ANRSquirrel(context, interval, ignoreDebugger, onlyMainThread, point, listener);
     }
   }
 }
