@@ -1,4 +1,4 @@
-package com.smartdengg.anrsquirrel.lib;
+package com.smartdengg.anrsquirrel.marble;
 
 import android.app.ActivityManager;
 import android.content.Context;
@@ -45,7 +45,7 @@ public class Util {
     }
     ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
     List<ActivityManager.RunningAppProcessInfo> appList = am.getRunningAppProcesses();
-    if (appList == null) return null;
+    if (appList == null || appList.size() == 0) return null;
     for (ActivityManager.RunningAppProcessInfo app : appList) {
       if (app.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
           && app.importanceReasonCode == 0) {

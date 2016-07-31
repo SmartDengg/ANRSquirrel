@@ -1,10 +1,9 @@
-package com.smartdengg.anrsquirrel.lib;
+package com.smartdengg.anrsquirrel;
 
 import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.Printer;
-import com.smartdengg.squirrel.ANRError;
 import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -19,8 +18,6 @@ class SquirrelPrinter implements Printer {
   private static final String TAG = SquirrelPrinter.class.getSimpleName();
   public static final String START_SIGNAL = ">>>>>";
   public static final String END_SIGNAL = "<<<<<";
-  private static final String CALLBACK = "CALLBACK";
-  private static final String ERROR = "ERROR";
 
   private AtomicBoolean isDumping = new AtomicBoolean(false);
 
@@ -59,7 +56,7 @@ class SquirrelPrinter implements Printer {
     }
   };
 
-  SquirrelPrinter(int interval, boolean onlyMainThread, Callback callback) {
+  public SquirrelPrinter(int interval, boolean onlyMainThread, Callback callback) {
     this.interval = interval;
     this.onlyMainThread = onlyMainThread;
     this.callback = callback;
@@ -116,7 +113,7 @@ class SquirrelPrinter implements Printer {
     return lengthMillis > interval;
   }
 
-  interface Callback extends Serializable {
+  public interface Callback extends Serializable {
 
     void onPreBlocking();
 

@@ -2,9 +2,9 @@ package com.smartdengg.anrsquirrel.example;
 
 import android.app.Application;
 import android.graphics.Point;
-import com.smartdengg.anrsquirrel.lib.ANRSquirrel;
-import com.smartdengg.anrsquirrel.lib.SquirrelListener;
-import com.smartdengg.squirrel.ANRError;
+import com.smartdengg.anrsquirrel.ANRError;
+import com.smartdengg.anrsquirrel.ANRSquirrel;
+import com.smartdengg.anrsquirrel.SquirrelListener;
 
 /**
  * Created by SmartDengg on 2016/7/18.
@@ -15,12 +15,8 @@ public class MyApplication extends Application {
     private static final long serialVersionUID = -8753541650745626066L;
 
     @Override public void onAppNotResponding(ANRError error) {
-      //throw error;
-      error.printStackTrace();
-    }
-
-    @Override public void onInterrupted(InterruptedException exception) {
-      exception.printStackTrace();
+      throw error;
+      //error.printStackTrace();
     }
   };
 

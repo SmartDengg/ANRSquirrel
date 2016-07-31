@@ -1,4 +1,4 @@
-package com.smartdengg.anrsquirrel.lib.marble;
+package com.smartdengg.anrsquirrel.marble;
 
 import android.app.Application;
 import android.app.Service;
@@ -10,7 +10,6 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.WindowManager;
 import android.widget.ImageView;
-import com.smartdengg.anrsquirrel.lib.MarbleLifecycleCallback;
 import com.smartdengg.squirrellib.R;
 
 /**

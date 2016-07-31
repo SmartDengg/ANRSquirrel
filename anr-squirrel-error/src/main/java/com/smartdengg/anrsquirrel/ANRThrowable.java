@@ -1,4 +1,4 @@
-package com.smartdengg.squirrel;
+package com.smartdengg.anrsquirrel;
 
 class ANRThrowable extends Throwable {
   private static final long serialVersionUID = -5395891642242998310L;

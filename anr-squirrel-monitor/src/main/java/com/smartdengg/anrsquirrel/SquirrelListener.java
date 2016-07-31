@@ -1,6 +1,5 @@
-package com.smartdengg.anrsquirrel.lib;
+package com.smartdengg.anrsquirrel;
 
-import com.smartdengg.squirrel.ANRError;
 import java.io.Serializable;
 
 /**
@@ -10,6 +9,4 @@ import java.io.Serializable;
  */
 public interface SquirrelListener extends Serializable {
   void onAppNotResponding(ANRError error);
-
-  void onInterrupted(InterruptedException exception);
 }

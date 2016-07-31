@@ -1,4 +1,4 @@
-package com.smartdengg.anrsquirrel.lib.marble;
+package com.smartdengg.anrsquirrel.marble;
 
 import android.view.GestureDetector;
 import android.view.MotionEvent;

@@ -1,4 +1,4 @@
-package com.smartdengg.squirrel;
+package com.smartdengg.anrsquirrel;
 
 import java.util.Arrays;
 import java.util.List;
@@ -49,7 +49,6 @@ import java.util.List;
 
       boolean logThreadStackTrace =
           (mainThread.getId() == thread.getId() || thread.getStackTrace().length > 0);
-
       if (!logThreadStackTrace) continue;
 
       String name = generatorThreadTitle(thread);

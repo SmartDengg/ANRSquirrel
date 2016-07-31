@@ -1,4 +1,4 @@
-package com.smartdengg.anrsquirrel.lib;
+package com.smartdengg.anrsquirrel.marble;
 
 import android.app.Activity;
 import android.app.Application;
@@ -9,7 +9,7 @@ import android.os.Bundle;
  * 作者:  SmartDengg <br>
  * 描述:
  */
-public enum MarbleLifecycleCallback implements Application.ActivityLifecycleCallbacks {
+enum MarbleLifecycleCallback implements Application.ActivityLifecycleCallbacks {
   INSTANCE;
 
   public interface LifecycleListener {

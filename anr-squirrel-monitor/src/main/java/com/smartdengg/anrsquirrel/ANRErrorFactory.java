@@ -1,12 +1,11 @@
-package com.smartdengg.anrsquirrel.lib;
+package com.smartdengg.anrsquirrel;
 
 import android.os.Looper;
-import com.smartdengg.squirrel.ANRError;
 
 /**
  * Created by SmartDengg on 2016/7/23.
  */
-public class ANRErrorFactory {
+class ANRErrorFactory {
 
   private static final Thread mainThread = Looper.getMainLooper().getThread();
 

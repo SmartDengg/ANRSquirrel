@@ -1,4 +1,4 @@
-package com.smartdengg.anrsquirrel.lib;
+package com.smartdengg.anrsquirrel;
 
 import android.content.Context;
 import android.graphics.Point;
@@ -8,8 +8,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
-import com.smartdengg.anrsquirrel.lib.marble.SquirrelMarble;
-import com.smartdengg.squirrel.ANRError;
+import com.smartdengg.anrsquirrel.marble.SquirrelMarble;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @SuppressWarnings("UnusedDeclaration") public class ANRSquirrel {
@@ -34,27 +33,23 @@ import java.util.concurrent.atomic.AtomicBoolean;
         if (listener != null) listener.onAppNotResponding(error);
       }
     }
-
-    @Override public void onInterrupted(InterruptedException exception) {
-      if (listener != null) listener.onInterrupted(exception);
-    }
-
     private void onDebuggerConnected() {
       Log.w(TAG,
           "An ANR was detected but ignored because the debugger is connected (you can prevent this with Builder.ignoreDebugger(true))");
     }
   };
 
-  private static Handler HANDLER = new Handler(HandlerFactory.getErrorHandler().getLooper()) {
-    @Override public void handleMessage(Message msg) {
-      Bundle bundle = msg.getData();
-      SquirrelListener squirrelListener = (SquirrelListener) bundle.get(LISTENER);
-      ANRError anrError = (ANRError) bundle.get(ERROR);
-      if (squirrelListener != null && anrError != null) {
-        squirrelListener.onAppNotResponding(anrError);
-      }
-    }
-  };
+  @SuppressWarnings("HandlerLeak") private static Handler HANDLER =
+      new Handler(HandlerFactory.getErrorHandler().getLooper()) {
+        @Override public void handleMessage(Message msg) {
+          Bundle bundle = msg.getData();
+          SquirrelListener squirrelListener = (SquirrelListener) bundle.get(LISTENER);
+          ANRError anrError = (ANRError) bundle.get(ERROR);
+          if (squirrelListener != null && anrError != null) {
+            squirrelListener.onAppNotResponding(anrError);
+          }
+        }
+      };
 
   private Runnable updateRunnable = new Runnable() {
     @Override public void run() {
