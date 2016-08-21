@@ -14,7 +14,7 @@ import butterknife.OnClick;
   private final Object mutexSync = new Object();
 
   private static void sleepAMinute() {
-    SystemClock.sleep(2 * 1000);
+    SystemClock.sleep(10 * 1000);
   }
 
   private void deadLock() {
