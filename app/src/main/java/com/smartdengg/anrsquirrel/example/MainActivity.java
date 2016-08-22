@@ -57,5 +57,7 @@ import butterknife.OnClick;
   @OnClick(R.id.btn_deadlock) protected void onClick1() {
     Log.e(TAG, "Begin waiting!");
     this.deadLock();
+
+
   }
 }

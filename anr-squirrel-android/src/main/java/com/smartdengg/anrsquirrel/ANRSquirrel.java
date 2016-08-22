@@ -37,10 +37,24 @@ import java.util.concurrent.atomic.AtomicBoolean;
   private static final int DEFAULT_ANR_TIMEOUT = 10 * 1000;
   private static final String LISTENER = "LISTENER";
   private static final String ERROR = "ERROR";
+  private static Handler HANDLER;
   private Handler UiHandler = new Handler(Looper.getMainLooper());
 
   private AtomicBoolean isStarted = new AtomicBoolean(false);
   private SquirrelMarble squirrelMarble;
+
+  static {
+    HANDLER = new Handler(HandlerFactory.getThrowHandler().getLooper()) {
+      @Override public void handleMessage(Message msg) {
+        Bundle bundle = msg.getData();
+        SquirrelListener squirrelListener = (SquirrelListener) bundle.get(LISTENER);
+        ANRError anrError = (ANRError) bundle.get(ERROR);
+        if (squirrelListener != null && anrError != null) {
+          squirrelListener.onAppNotResponding(anrError);
+        }
+      }
+    };
+  }
 
   private final SquirrelListener LISTENER_OF_SOULS = new SquirrelListener() {
     private static final long serialVersionUID = 7709345094663791741L;
@@ -58,18 +72,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
           "An ANR was detected but ignored because the debugger is connected (you can prevent this with Builder#.ignoreDebugger(true))");
     }
   };
-
-  @SuppressWarnings("HandlerLeak") private static Handler HANDLER =
-      new Handler(HandlerFactory.getThrowHandler().getLooper()) {
-        @Override public void handleMessage(Message msg) {
-          Bundle bundle = msg.getData();
-          SquirrelListener squirrelListener = (SquirrelListener) bundle.get(LISTENER);
-          ANRError anrError = (ANRError) bundle.get(ERROR);
-          if (squirrelListener != null && anrError != null) {
-            squirrelListener.onAppNotResponding(anrError);
-          }
-        }
-      };
 
   private Runnable updateRunnable = new Runnable() {
     @Override public void run() {
