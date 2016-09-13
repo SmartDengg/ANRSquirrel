@@ -60,7 +60,9 @@ import java.util.List;
       threads[i] = mainThread;
     }
 
-    for (Thread thread : threads) {
+    //noinspection ForLoopReplaceableByForEach
+    for (int i = 0; i < threads.length; i++) {
+      Thread thread = threads[i];
       if (thread == null) continue;
       if (thread.getName().startsWith(threadPrefix)) continue;
 
@@ -83,7 +85,7 @@ import java.util.List;
 
   private static Thread[] insertElement(Thread original[], Thread element, int index) {
     int length = original.length;
-    Thread destination[] = new Thread[length + 1];
+    Thread[] destination = new Thread[length + 1];
     System.arraycopy(original, 0, destination, 0, index);
     destination[index] = element;
     System.arraycopy(original, index, destination, index + 1, length - index);
