@@ -19,6 +19,8 @@ package com.smartdengg.anrsquirrel;
 
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Looper;
+import android.os.MessageQueue;
 import android.os.Process;
 import android.text.TextUtils;
 
@@ -35,11 +37,13 @@ class HandlerFactory {
   private static HandlerThreadWrapper checkLockHandler;
   private static HandlerThreadWrapper throwHandler;
 
+  private static final int THREAD_LEAK_CLEANING_MS = 1000;
+
   private HandlerFactory() {
     throw new IllegalStateException("No instance!");
   }
 
-  public static Handler getANRHandler() {
+  static Handler getANRHandler() {
 
     if (ANRHandler == null) {
       synchronized (HandlerFactory.class) {
@@ -52,7 +56,7 @@ class HandlerFactory {
     return ANRHandler.handler();
   }
 
-  public static Handler getCheckLockHandler() {
+  static Handler getCheckLockHandler() {
 
     if (checkLockHandler == null) {
       synchronized (HandlerFactory.class) {
@@ -66,7 +70,7 @@ class HandlerFactory {
     return checkLockHandler.handler();
   }
 
-  public static Handler getThrowHandler() {
+  static Handler getThrowHandler() {
 
     if (throwHandler == null) {
       synchronized (HandlerFactory.class) {
@@ -82,17 +86,38 @@ class HandlerFactory {
   private static class HandlerThreadWrapper {
     private Handler handler = null;
 
-    public HandlerThreadWrapper(String suffix, int priority) {
+    HandlerThreadWrapper(String suffix, int priority) {
       HandlerThread handlerThread =
           new HandlerThread(THREAD_PREFIX + (TextUtils.isEmpty(suffix) ? "" : "_" + suffix + "  "),
               priority);
       handlerThread.start();
+      flushStackLocalLeaks(handlerThread.getLooper());
+
       this.handler = new Handler(handlerThread.getLooper());
     }
 
-    public Handler handler() {
+    Handler handler() {
       this.handler.removeCallbacksAndMessages(null);
       return handler;
     }
+  }
+
+  /**
+   * Prior to Android 5, HandlerThread always keeps a stack local reference to the last message
+   * that was sent to it. This method makes sure that stack local reference never stays there
+   * for too long by sending new messages to it every second.
+   */
+  private static void flushStackLocalLeaks(Looper looper) {
+    final Handler handler = new Handler(looper);
+    handler.post(new Runnable() {
+      @Override public void run() {
+        Looper.myQueue().addIdleHandler(new MessageQueue.IdleHandler() {
+          @Override public boolean queueIdle() {
+            handler.sendMessageDelayed(handler.obtainMessage(), THREAD_LEAK_CLEANING_MS);
+            return true;
+          }
+        });
+      }
+    });
   }
 }

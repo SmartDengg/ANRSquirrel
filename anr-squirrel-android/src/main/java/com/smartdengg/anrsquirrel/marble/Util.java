@@ -28,14 +28,14 @@ import java.util.List;
  * 作者:  SmartDengg <br>
  * 描述:
  */
-public class Util {
+class Util {
 
   private Util() {
 
     throw new IllegalStateException("No instance!");
   }
 
-  public static boolean isForeground(Context context) {
+  static boolean isForeground(Context context) {
 
     ActivityManager activityManager =
         (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);

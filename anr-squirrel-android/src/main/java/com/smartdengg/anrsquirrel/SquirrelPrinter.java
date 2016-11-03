@@ -70,7 +70,7 @@ class SquirrelPrinter implements Printer {
     }
   };
 
-  public SquirrelPrinter(ANRSquirrel anrSquirrel, Callback callback) {
+  SquirrelPrinter(ANRSquirrel anrSquirrel, Callback callback) {
     this.interval = anrSquirrel.interval;
     this.onlyMainThread = anrSquirrel.onlyMainThread;
     this.callback = callback;
@@ -139,7 +139,7 @@ class SquirrelPrinter implements Printer {
     return lengthMillis > interval;
   }
 
-  public interface Callback extends Serializable {
+  interface Callback extends Serializable {
 
     void onPreBlocking();
 

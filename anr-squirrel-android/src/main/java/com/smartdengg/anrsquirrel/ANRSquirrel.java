@@ -180,30 +180,25 @@ import java.util.concurrent.atomic.AtomicBoolean;
     }
 
     public Builder anchor(Point point) {
-      if (point == null) {
-        throw new IllegalArgumentException("Point must not be null.");
-      }
-      if (point.x < 0) throw new IllegalStateException("x must not be less than 0");
-      if (point.y < 0) throw new IllegalStateException("y must not be less than 0");
+      if (point == null) throw new NullPointerException("Point == null");
+      if (point.x < 0) throw new IllegalArgumentException("x must not be less than 0");
+      if (point.y < 0) throw new IllegalArgumentException("y must not be less than 0");
+
       this.point = point;
       return Builder.this;
     }
 
     public Builder listener(SquirrelListener listener) {
-      if (listener == null) {
-        throw new IllegalArgumentException("SquirrelListener must not be null.");
-      }
-      if (this.listener != null) {
-        throw new IllegalStateException("SquirrelListener already set.");
-      }
+      if (listener == null) throw new NullPointerException("SquirrelListener == null.");
+      if (this.listener != null) throw new IllegalStateException("SquirrelListener already set.");
+
       this.listener = listener;
       return Builder.this;
     }
 
     public Builder addPrinter(Printer printer) {
-      if (printer == null) {
-        throw new IllegalArgumentException("Printer must not be null.");
-      }
+      if (printer == null) throw new NullPointerException("Printer == null.");
+
       if (this.printers == null) this.printers = new LinkedList<>();
       this.printers.add(printer);
 

@@ -60,9 +60,7 @@ enum MarbleLifecycleCallback implements Application.ActivityLifecycleCallbacks {
   }
 
   @Override public void onActivityStopped(Activity activity) {
-    if (!Util.isForeground(activity) && lifecycleListener != null) {
-      lifecycleListener.onBackground();
-    }
+    if (!Util.isForeground(activity) && lifecycleListener != null) lifecycleListener.onBackground();
   }
 
   @Override public void onActivitySaveInstanceState(Activity activity, Bundle outState) {
