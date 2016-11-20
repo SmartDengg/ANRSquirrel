@@ -17,6 +17,7 @@
 
 package com.smartdengg.anrsquirrel;
 
+import android.Manifest;
 import android.content.Context;
 import android.graphics.Point;
 import android.os.Bundle;
@@ -29,7 +30,6 @@ import android.util.Printer;
 import com.smartdengg.anrsquirrel.marble.SquirrelMarble;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @SuppressWarnings("UnusedDeclaration") public class ANRSquirrel {
 
@@ -37,20 +37,69 @@ import java.util.concurrent.atomic.AtomicBoolean;
   private static final int DEFAULT_ANR_TIMEOUT = 10 * 1000;
   private static final String LISTENER = "LISTENER";
   private static final String ERROR = "ERROR";
-  private static Handler HANDLER;
-  private Handler UiHandler = new Handler(Looper.getMainLooper());
+  private static Handler THROW_HANDLER;
+  static Handler HANDLER;
 
-  private AtomicBoolean isStarted = new AtomicBoolean(false);
+  static final int START_DETECT = 1;
+  static final int STOP_DETECT = 2;
+  static final int UPDATE_MARBLE = 3;
+  static final int RESET_MARBLE = 4;
+
+  private final boolean canAlertWindow;
+  private boolean isStarted = false;
   private SquirrelMarble squirrelMarble;
 
   static {
-    HANDLER = new Handler(HandlerFactory.getThrowHandler().getLooper()) {
+    THROW_HANDLER = new Handler(HandlerFactory.getThrowHandler().getLooper()) {
       @Override public void handleMessage(Message msg) {
+
         Bundle bundle = msg.getData();
         SquirrelListener squirrelListener = (SquirrelListener) bundle.get(LISTENER);
         ANRError anrError = (ANRError) bundle.get(ERROR);
         if (squirrelListener != null && anrError != null) {
           squirrelListener.onAppNotResponding(anrError);
+        }
+      }
+    };
+
+    HANDLER = new Handler(Looper.getMainLooper()) {
+      @Override public void handleMessage(Message msg) {
+
+        switch (msg.what) {
+
+          case START_DETECT: {
+            SquirrelPrinter squirrelPrinter = (SquirrelPrinter) msg.obj;
+            if (squirrelPrinter == null) break;
+
+            squirrelPrinter.isStarted = true;
+            Looper.getMainLooper().setMessageLogging(squirrelPrinter);
+            break;
+          }
+
+          case STOP_DETECT: {
+            SquirrelPrinter squirrelPrinter = (SquirrelPrinter) msg.obj;
+            if (squirrelPrinter == null) break;
+
+            squirrelPrinter.isStarted = false;
+            squirrelPrinter.removePendingMessage();
+            Looper.getMainLooper().setMessageLogging(null);
+            break;
+          }
+
+          case UPDATE_MARBLE: {
+            SquirrelMarble squirrelMarble = (SquirrelMarble) msg.obj;
+            if (squirrelMarble != null) squirrelMarble.update();
+            break;
+          }
+
+          case RESET_MARBLE: {
+            SquirrelMarble squirrelMarble = (SquirrelMarble) msg.obj;
+            if (squirrelMarble != null) squirrelMarble.reset();
+            break;
+          }
+
+          default:
+            throw new AssertionError("Unknown handler message received: " + msg.what);
         }
       }
     };
@@ -73,73 +122,77 @@ import java.util.concurrent.atomic.AtomicBoolean;
     }
   };
 
-  private Runnable updateRunnable = new Runnable() {
-    @Override public void run() {
-      if (squirrelMarble != null) squirrelMarble.update();
-    }
-  };
+  final int interval;
+  final boolean onlyMainThread;
+  final List<Printer> printers;
+  private final boolean ignoreDebugger;
+  private final SquirrelListener listener;
+  private final SquirrelPrinter squirrelPrinter;
 
-  private Runnable resetRunnable = new Runnable() {
-    @Override public void run() {
-      if (squirrelMarble != null) squirrelMarble.reset();
-    }
-  };
-
-  private final Context context;
-  int interval;
-  boolean onlyMainThread;
-  boolean ignoreDebugger;
-  final SquirrelListener listener;
-  Point marblePoint;
-  List<Printer> printers;
-
-  private ANRSquirrel(Context context, int interval, boolean ignoreDebugger, boolean onlyMainThread,
-      Point point, SquirrelListener listener, List<Printer> printers) {
-    this.context = context;
+  private ANRSquirrel(Context context, final int interval, boolean ignoreDebugger,
+      boolean onlyMainThread, Point point, SquirrelListener listener, List<Printer> printers) {
     this.interval = interval;
     this.onlyMainThread = onlyMainThread;
     this.ignoreDebugger = ignoreDebugger;
-    this.marblePoint = point;
     this.listener = listener;
     this.printers = printers;
+
+    this.canAlertWindow = Utils.hasPermission(context, Manifest.permission.SYSTEM_ALERT_WINDOW);
+    if (canAlertWindow) squirrelMarble = SquirrelMarble.initWith(context, point);
+
+    this.squirrelPrinter = new SquirrelPrinter(ANRSquirrel.this, new SquirrelPrinter.Callback() {
+      private static final long serialVersionUID = -4595328905012011071L;
+
+      @Override public void onPreBlocking() {
+        if (!canAlertWindow) return;
+        HANDLER.removeMessages(UPDATE_MARBLE, squirrelMarble);
+        HANDLER.sendMessage(HANDLER.obtainMessage(UPDATE_MARBLE));
+      }
+
+      @Override public void onBlocked(ANRError anrError, boolean isDeadLock) {
+        ANRSquirrel.this.sendWrapperMessageWithDelay(anrError,
+            isDeadLock ? 0 : (long) (interval * 0.3));
+      }
+
+      @Override public void onBlockCompleted() {
+        if (!canAlertWindow) return;
+        HANDLER.removeMessages(RESET_MARBLE);
+        long delayMillis = (long) (interval * 0.2);
+        HANDLER.sendMessageDelayed(HANDLER.obtainMessage(RESET_MARBLE, squirrelMarble),
+            delayMillis);
+      }
+    });
   }
 
-  public void show() {
+  public synchronized void start() {
+    if (isStarted) {
+      Log.v(TAG, "ANRSquirrel detector already started");
+      return;
+    }
 
-    if (isStarted.get()) throw new IllegalStateException("ANRSquirrel detector already started");
-    isStarted.set(true);
+    this.isStarted = true;
+    this.squirrelPrinter.startIfStopped();
+    if (squirrelMarble != null && canAlertWindow) squirrelMarble.show();
+  }
 
-    squirrelMarble = SquirrelMarble.initWith(context, marblePoint);
-    squirrelMarble.show();
+  public synchronized void stop() {
+    if (!isStarted) {
+      Log.v(TAG, "ANRSquirrel detector already stopped");
+      return;
+    }
 
-    Looper.getMainLooper()
-        .setMessageLogging(new SquirrelPrinter(ANRSquirrel.this, new SquirrelPrinter.Callback() {
-          private static final long serialVersionUID = -4595328905012011071L;
-
-          @Override public void onPreBlocking() {
-            UiHandler.removeCallbacks(updateRunnable);
-            UiHandler.post(updateRunnable);
-          }
-
-          @Override public void onBlocked(ANRError anrError, boolean isDeadLock) {
-            ANRSquirrel.this.sendWrapperMessageWithDelay(anrError,
-                isDeadLock ? 0 : (long) (interval * 0.3));
-          }
-
-          @Override public void onBlockCompleted() {
-            UiHandler.removeCallbacks(resetRunnable);
-            UiHandler.postDelayed(resetRunnable, (long) (interval * 0.2));
-          }
-        }));
+    this.isStarted = false;
+    this.squirrelPrinter.stopIfStarted();
+    if (squirrelMarble != null && canAlertWindow) squirrelMarble.hide();
   }
 
   private void sendWrapperMessageWithDelay(ANRError error, long delayMillis) {
-    Message message = HANDLER.obtainMessage();
+    Message message = THROW_HANDLER.obtainMessage();
     Bundle bundle = new Bundle();
     bundle.putSerializable(LISTENER, LISTENER_OF_SOULS);
     bundle.putSerializable(ERROR, error);
     message.setData(bundle);
-    HANDLER.sendMessageDelayed(message, delayMillis);
+    THROW_HANDLER.sendMessageDelayed(message, delayMillis);
   }
 
   public static ANRSquirrel initializeWithDefaults(final Context context) {

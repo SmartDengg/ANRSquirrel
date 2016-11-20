@@ -33,8 +33,7 @@ import java.util.List;
     return this;
   }
 
-  public static ANRError dumpStackTrace(Thread mainThread, boolean onlyMainThread,
-      String threadPrefix) {
+  static ANRError dumpStackTrace(Thread mainThread, boolean onlyMainThread, String threadPrefix) {
 
     if (onlyMainThread) {
       return new ANRError(

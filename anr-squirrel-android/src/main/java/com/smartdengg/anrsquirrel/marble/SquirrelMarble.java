@@ -110,7 +110,7 @@ public class SquirrelMarble {
     this.windowManager.addView(marbleView, layoutParams);
   }
 
-  private void hide() {
+  public void hide() {
     if (this.marbleView.getParent() != null) this.windowManager.removeViewImmediate(marbleView);
 
     this.lastX = layoutParams.x;
@@ -135,4 +135,5 @@ public class SquirrelMarble {
 
     this.marbleView.setImageDrawable(context.getResources().getDrawable(R.drawable.water_melon));
   }
+
 }

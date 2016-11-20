@@ -15,10 +15,11 @@
  *
  */
 
-package com.smartdengg.anrsquirrel.marble;
+package com.smartdengg.anrsquirrel;
 
 import android.app.ActivityManager;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import java.lang.reflect.Field;
 import java.util.List;
@@ -28,19 +29,18 @@ import java.util.List;
  * 作者:  SmartDengg <br>
  * 描述:
  */
-class Util {
+public class Utils {
 
-  private Util() {
-
-    throw new IllegalStateException("No instance!");
+  private Utils() {
+    throw new AssertionError("No instance!");
   }
 
-  static boolean isForeground(Context context) {
+  public static boolean isForeground(Context context) {
 
     ActivityManager activityManager =
         (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-      ActivityManager.RunningAppProcessInfo topAppProcess = Util.getTopProcessCompatV21(context);
+      ActivityManager.RunningAppProcessInfo topAppProcess = Utils.getTopProcessCompatV21(context);
       return topAppProcess != null && topAppProcess.pid == android.os.Process.myPid();
     } else {
       List<ActivityManager.RunningTaskInfo> tasks = activityManager.getRunningTasks(1);
@@ -78,5 +78,9 @@ class Util {
       }
     }
     return currentInfo;
+  }
+
+  public static boolean hasPermission(Context context, String permission) {
+    return context.checkCallingOrSelfPermission(permission) == PackageManager.PERMISSION_GRANTED;
   }
 }

@@ -91,7 +91,7 @@ class HandlerFactory {
           new HandlerThread(THREAD_PREFIX + (TextUtils.isEmpty(suffix) ? "" : "_" + suffix + "  "),
               priority);
       handlerThread.start();
-      flushStackLocalLeaks(handlerThread.getLooper());
+      //flushStackLocalLeaks(handlerThread.getLooper());
 
       this.handler = new Handler(handlerThread.getLooper());
     }

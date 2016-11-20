@@ -18,13 +18,15 @@
 package com.smartdengg.anrsquirrel;
 
 import android.os.Handler;
+import android.os.Message;
 import android.text.TextUtils;
-import android.util.Log;
 import android.util.Printer;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import static com.smartdengg.anrsquirrel.ANRSquirrel.HANDLER;
 
 /**
  * 创建时间:  16/7/20 下午12:07 <br>
@@ -39,22 +41,24 @@ class SquirrelPrinter implements Printer {
 
   private volatile long startNanos;
   private volatile long stopNanos;
-  private long interval;
-  private boolean onlyMainThread;
-  private List<Printer> printers;
+  private final long interval;
+  private final boolean onlyMainThread;
+  private final List<Printer> printers;
   private final Handler ANRHandler;
   private final Handler deadLockHandler;
+  private final Callback callback;
   private ANRError anrError;
-  private Callback callback;
-  private Runnable ANRRunnable = new Runnable() {
-    @Override public void run() {
 
+  boolean isStarted = false;
+
+  private Runnable ANRAction = new Runnable() {
+    @Override public void run() {
       if (onlyMainThread) {
         anrError = ANRErrorFactory.onlyMainThread();
       } else {
         anrError = ANRErrorFactory.allThread();
       }
-      deadLockHandler.postDelayed(deadLockRunnable, interval * 2);
+      deadLockHandler.postDelayed(deadLockAction, interval * 2);
 
       /*String name = Thread.currentThread().getName();
       if (!name.contains("dalvik") && !name.contains("java") && !name.contains("com.android")) {
@@ -63,10 +67,21 @@ class SquirrelPrinter implements Printer {
     }
   };
 
-  private Runnable deadLockRunnable = new Runnable() {
+  private Runnable deadLockAction = new Runnable() {
     @Override public void run() {
-      Log.w(TAG, "From deadLockRunnable");
       if (callback != null) callback.onBlocked(anrError, true);
+    }
+  };
+
+  private Runnable stopANRAction = new Runnable() {
+    @Override public void run() {
+      ANRHandler.removeCallbacks(ANRAction);
+    }
+  };
+
+  private Runnable stopDeadLockAction = new Runnable() {
+    @Override public void run() {
+      deadLockHandler.removeCallbacks(deadLockAction);
     }
   };
 
@@ -81,6 +96,8 @@ class SquirrelPrinter implements Printer {
 
   @Override public void println(String x) {
 
+    if (!isStarted) return;
+
     if (this.isDispatching(x)) {
       this.startNanos = System.nanoTime();
 
@@ -94,7 +111,9 @@ class SquirrelPrinter implements Printer {
 
       /*dump end*/
       this.stopDumping();
-      if (isBlock()) {
+
+      /*check block*/
+      if (isBlock(startNanos, stopNanos, interval)) {
         if (callback != null) {
           callback.onPreBlocking();
           callback.onBlocked(anrError, false);
@@ -109,6 +128,8 @@ class SquirrelPrinter implements Printer {
 
   private void dispatchingMsg(String x) {
     if (this.printers == null || this.printers.size() == 0) return;
+
+    //noinspection ForLoopReplaceableByForEach
     for (Iterator<Printer> iterator = printers.iterator(); iterator.hasNext(); ) {
       Printer printer = iterator.next();
       printer.println(x);
@@ -117,12 +138,12 @@ class SquirrelPrinter implements Printer {
 
   private void startDumping() {
     this.stopDumping();
-    this.ANRHandler.postDelayed(ANRRunnable, (long) (interval * 0.7));
+    this.ANRHandler.postDelayed(ANRAction, (long) (interval * 0.7));
   }
 
   private void stopDumping() {
-    this.ANRHandler.removeCallbacks(ANRRunnable);
-    this.deadLockHandler.removeCallbacks(deadLockRunnable);
+    this.ANRHandler.removeCallbacks(ANRAction);
+    this.deadLockHandler.removeCallbacks(deadLockAction);
   }
 
   private boolean isDispatching(String message) {
@@ -133,10 +154,30 @@ class SquirrelPrinter implements Printer {
     return !TextUtils.isEmpty(message) && message.startsWith(END_SIGNAL);
   }
 
-  private boolean isBlock() {
+  private static boolean isBlock(long startNanos, long stopNanos, long interval) {
     long lengthMillis =
         TimeUnit.NANOSECONDS.toMillis(stopNanos) - TimeUnit.NANOSECONDS.toMillis(startNanos);
     return lengthMillis > interval;
+  }
+
+  void stopIfStarted() {
+    HANDLER.sendMessageAtFrontOfQueue(HANDLER.obtainMessage(ANRSquirrel.STOP_DETECT, this));
+  }
+
+  void startIfStopped() {
+    HANDLER.sendMessageAtFrontOfQueue(HANDLER.obtainMessage(ANRSquirrel.START_DETECT, this));
+  }
+
+  void removePendingMessage() {
+    this.startNanos = this.stopNanos = 0;
+    this.ANRHandler.removeCallbacksAndMessages(SquirrelPrinter.this);
+    this.deadLockHandler.removeCallbacksAndMessages(SquirrelPrinter.this);
+
+    Message stopANRMessage = Message.obtain(ANRHandler, stopANRAction);
+    Message stopDeadLockMessage = Message.obtain(deadLockHandler, stopDeadLockAction);
+    stopDeadLockMessage.obj = stopANRMessage.obj = SquirrelPrinter.this;
+    this.ANRHandler.sendMessageAtFrontOfQueue(stopANRMessage);
+    this.deadLockHandler.sendMessageAtFrontOfQueue(stopDeadLockMessage);
   }
 
   interface Callback extends Serializable {

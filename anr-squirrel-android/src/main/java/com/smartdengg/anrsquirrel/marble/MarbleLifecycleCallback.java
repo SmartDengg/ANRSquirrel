@@ -20,6 +20,7 @@ package com.smartdengg.anrsquirrel.marble;
 import android.app.Activity;
 import android.app.Application;
 import android.os.Bundle;
+import com.smartdengg.anrsquirrel.Utils;
 
 /**
  * 创建时间:  16/7/27 下午3:47 <br>
@@ -60,7 +61,7 @@ enum MarbleLifecycleCallback implements Application.ActivityLifecycleCallbacks {
   }
 
   @Override public void onActivityStopped(Activity activity) {
-    if (!Util.isForeground(activity) && lifecycleListener != null) lifecycleListener.onBackground();
+    if (!Utils.isForeground(activity) && lifecycleListener != null) lifecycleListener.onBackground();
   }
 
   @Override public void onActivitySaveInstanceState(Activity activity, Bundle outState) {
