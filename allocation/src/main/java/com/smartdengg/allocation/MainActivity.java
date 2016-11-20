@@ -1,27 +1,51 @@
 package com.smartdengg.allocation;
 
+import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.HandlerThread;
+import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-  @Override protected void onCreate(Bundle savedInstanceState) {
+  private static List<Activity> list = new ArrayList<>();
+
+  Handler handler = new Handler() {
+    @Override public void handleMessage(Message msg) {
+      super.handleMessage(msg);
+      System.out.printf(msg.toString());
+    }
+  };
+
+  @SuppressLint("CommitPrefEdits") @Override protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
 
-    HandlerThread handlerThread1 = new HandlerThread("allocation#1");
-    handlerThread1.start();
+    /*SharedPreferences sharedPreferences = getSharedPreferences("smart", Context.MODE_PRIVATE);
 
-    HandlerThread handlerThread2 = new HandlerThread("allocation#2");
-    handlerThread2.start();
+    SharedPreferences.Editor edit = sharedPreferences.edit();
+    edit.putString("string", "one").commit();
 
-    HandlerThread handlerThread3 = new HandlerThread("allocation#3");
-    handlerThread3.start();
+    Set<String> strings = new ArraySet<>(3);
+    strings.add("1");
+    strings.add("2");
+    strings.add("3");
+    edit.putStringSet("set", strings);*/
 
-    Handler handler1 = new Handler(handlerThread1.getLooper());
-    Handler handler2 = new Handler(handlerThread2.getLooper());
-    Handler handler3 = new Handler(handlerThread3.getLooper());
+    handler.postDelayed(new Runnable() {
+      @Override public void run() {
+        System.out.println("run");
+      }
+    }, 10 * 60 * 1000);
+
+    System.out.println("onCreate");
+  }
+
+  @Override protected void onDestroy() {
+    super.onDestroy();
+    System.out.println("onDestroy");
   }
 }

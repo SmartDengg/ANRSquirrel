@@ -1,2 +1,3 @@
 include ':anr-squirrel-error', ':anr-squirrel-android', ':allocation',
     ':anr-squirrel-android-no-op'
+include ':app'
