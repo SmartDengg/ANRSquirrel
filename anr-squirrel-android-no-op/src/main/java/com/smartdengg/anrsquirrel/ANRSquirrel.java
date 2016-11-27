@@ -19,12 +19,14 @@ package com.smartdengg.anrsquirrel;
 
 import android.content.Context;
 import android.graphics.Point;
+import android.util.Printer;
+import java.util.List;
 
 public class ANRSquirrel {
 
   /** stub **/
-  private ANRSquirrel(Context context, int interval, boolean ignoreDebugger, boolean onlyMainThread,
-      Point point, SquirrelListener listener) {
+  private ANRSquirrel(Context context, final int interval, boolean ignoreDebugger,
+      boolean onlyMainThread, Point point, SquirrelListener listener, List<Printer> printers) {
   }
 
   /** stub **/
@@ -67,8 +69,13 @@ public class ANRSquirrel {
     }
 
     /** stub **/
+    public Builder addPrinter(Printer printer) {
+      return Builder.this;
+    }
+
+    /** stub **/
     public ANRSquirrel build() {
-      return new ANRSquirrel(null, 0, false, false, null, null);
+      return new ANRSquirrel(null, 0, false, false, null, null, null);
     }
   }
 }

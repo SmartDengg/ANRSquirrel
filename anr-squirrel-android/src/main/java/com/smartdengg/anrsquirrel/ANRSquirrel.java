@@ -18,6 +18,7 @@
 package com.smartdengg.anrsquirrel;
 
 import android.Manifest;
+import android.app.Application;
 import android.content.Context;
 import android.graphics.Point;
 import android.os.Bundle;
@@ -211,8 +212,8 @@ import java.util.List;
     private List<Printer> printers;
 
     public Builder(Context context) {
-      if (context == null) throw new IllegalArgumentException("Context must not be null.");
-      this.context = context.getApplicationContext();
+      if (context == null) throw new IllegalStateException("Context must not be null.");
+      this.context = (context instanceof Application) ? context : context.getApplicationContext();
     }
 
     public Builder interval(int interval) {

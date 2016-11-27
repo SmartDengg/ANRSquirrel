@@ -25,5 +25,7 @@ import java.io.Serializable;
  * 描述:
  */
 public interface SquirrelListener extends Serializable {
+  long serialVersionUID = 4543664503268951395L;
+
   void onAppNotResponding(ANRError error);
 }

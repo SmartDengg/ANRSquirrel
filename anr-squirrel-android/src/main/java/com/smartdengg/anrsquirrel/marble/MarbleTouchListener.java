@@ -43,7 +43,7 @@ class MarbleTouchListener implements View.OnTouchListener {
     this.gestureDetector = gestureDetector;
   }
 
-  public MarbleTouchListener(WindowManager.LayoutParams layoutParams, WindowManager windowManager) {
+  MarbleTouchListener(WindowManager.LayoutParams layoutParams, WindowManager windowManager) {
     this.windowManager = windowManager;
     this.layoutParams = layoutParams;
   }
@@ -63,8 +63,11 @@ class MarbleTouchListener implements View.OnTouchListener {
         windowManager.updateViewLayout(v, layoutParams);
         break;
       case MotionEvent.ACTION_UP:
+        v.performClick();
+        break;
+      default:
         break;
     }
-    return false;
+    return true;
   }
 }

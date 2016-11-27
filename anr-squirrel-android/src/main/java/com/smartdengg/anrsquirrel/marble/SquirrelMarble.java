@@ -17,6 +17,7 @@
 
 package com.smartdengg.anrsquirrel.marble;
 
+import android.annotation.SuppressLint;
 import android.app.Application;
 import android.app.Service;
 import android.content.Context;
@@ -34,7 +35,7 @@ import com.smartdengg.mylibrary.R;
  */
 public class SquirrelMarble {
 
-  private static SquirrelMarble instance;
+  @SuppressLint("StaticFieldLeak") private static SquirrelMarble instance;
   private final Point marblePoint;
   private final Context context;
 
@@ -61,7 +62,7 @@ public class SquirrelMarble {
     this.initOverlayMarble();
   }
 
-  private void initOverlayMarble() {
+  @SuppressLint("InflateParams") private void initOverlayMarble() {
     this.marbleView =
         (ImageView) LayoutInflater.from(context).inflate(R.layout.marble_view, null, false);
     this.marbleView.setHapticFeedbackEnabled(false);
@@ -135,5 +136,4 @@ public class SquirrelMarble {
 
     this.marbleView.setImageDrawable(context.getResources().getDrawable(R.drawable.water_melon));
   }
-
 }
