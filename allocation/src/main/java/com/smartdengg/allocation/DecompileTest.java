@@ -7,20 +7,32 @@ package com.smartdengg.allocation;
  */
 public class DecompileTest {
 
+  {
+    String s = "";
+  }
+
+  {
+    String s = "";
+  }
+
   public void main() {
 
-    //Son[] sons = new Son[2];
-    //sons[0] = new Son("1");
-    //sons[1] = new Son("1");
-    //
-    //String s1 = "name0 = " + sons[0].name + "\n" + "name1 = " + sons[1].name;
-    //String s2 = "deng" + "wei" + "haha";
-    //
-    //String deng = "deng";
-    //String wei = "wei";
-    //String haha = "haha";
-    //String s3 = deng + wei + haha;
-    //
+    Son[] sons = new Son[2];
+    sons[0] = new Son("1");
+    sons[1] = new Son("1");
+
+    String s1 = "name0 = " + sons[0].name + "\n" + "name1 = " + sons[1].name;
+    String s2 = "deng" + "wei" + "haha";
+
+    String deng = "deng";
+    String wei = "wei";
+    String haha = "haha";
+    String s3 = deng + wei + haha;
+
+    System.out.printf(s1.toString());
+    System.out.printf(s2.toString());
+    System.out.printf(s3.toString());
+
     //Parent parent = new Parent(sons);
     //parent.go();
     //
@@ -50,15 +62,42 @@ public class DecompileTest {
     //}
 
     Inter inter = new Inter() {
+
+      @Override public void print() {
+        DecompileTest.this.print();
+      }
     };
 
     Inter inter1 = new Inter() {
+      @Override public void print() {
+
+      }
     };
 
     InterClass interClass = new InterClass();
     String string = interClass.mString;
 
-    StaticInterClass staticInterClass = new StaticInterClass();
+    //StaticInterClass staticInterClass = new StaticInterClass();
+
+    StaticInner si = new StaticInner();
+    si.innerMethod();
+
+    Integer i = 1;
+
+    Integer integer = new Integer(10);
+    int i1 = integer;
+  }
+
+  private void print() {
+  }
+
+  ;
+  private static int shared = 100;
+
+  public static class StaticInner {
+    public void innerMethod() {
+      System.out.println("inner " + shared);
+    }
   }
 
   private class Parent {
@@ -90,6 +129,7 @@ public class DecompileTest {
 
   interface Inter {
 
+    void print();
   }
 
   class InterClass {

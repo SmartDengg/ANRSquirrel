@@ -29,6 +29,8 @@ import android.os.Message;
 import android.util.Log;
 import android.util.Printer;
 import com.smartdengg.anrsquirrel.marble.SquirrelMarble;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -126,6 +128,7 @@ import java.util.List;
   final int interval;
   final boolean onlyMainThread;
   final List<Printer> printers;
+  final Printer defaultLogging;
   private final boolean ignoreDebugger;
   private final SquirrelListener listener;
   private final SquirrelPrinter squirrelPrinter;
@@ -137,6 +140,7 @@ import java.util.List;
     this.ignoreDebugger = ignoreDebugger;
     this.listener = listener;
     this.printers = printers;
+    this.defaultLogging = getDefaultLogging(Looper.getMainLooper());
 
     this.canAlertWindow = Utils.hasPermission(context, Manifest.permission.SYSTEM_ALERT_WINDOW);
     if (canAlertWindow) squirrelMarble = SquirrelMarble.initWith(context, point);
@@ -151,7 +155,7 @@ import java.util.List;
       }
 
       @Override public void onBlocked(ANRError anrError, boolean isDeadLock) {
-        ANRSquirrel.this.sendWrapperMessageWithDelay(anrError,
+        ANRSquirrel.this.sendWrapperMessageInDelay(anrError,
             isDeadLock ? 0 : (long) (interval * 0.3));
       }
 
@@ -163,6 +167,22 @@ import java.util.List;
             delayMillis);
       }
     });
+  }
+
+  private static Printer getDefaultLogging(Looper mainLooper) {
+
+    Printer mLogging = null;
+    try {
+      Field field = Looper.class.getDeclaredField("mLogging");
+      if (Modifier.isPrivate(field.getModifiers())) field.setAccessible(true);
+      mLogging = (Printer) field.get(mainLooper);
+    } catch (NoSuchFieldException e) {
+      e.printStackTrace();
+    } catch (IllegalAccessException e) {
+      e.printStackTrace();
+    }
+
+    return mLogging;
   }
 
   public synchronized void start() {
@@ -187,7 +207,7 @@ import java.util.List;
     if (squirrelMarble != null && canAlertWindow) squirrelMarble.hide();
   }
 
-  private void sendWrapperMessageWithDelay(ANRError error, long delayMillis) {
+  private void sendWrapperMessageInDelay(ANRError error, long delayMillis) {
     Message message = THROW_HANDLER.obtainMessage();
     Bundle bundle = new Bundle();
     bundle.putSerializable(LISTENER, LISTENER_OF_SOULS);
@@ -237,7 +257,6 @@ import java.util.List;
       if (point == null) throw new NullPointerException("Point == null");
       if (point.x < 0) throw new IllegalArgumentException("x must not be less than 0");
       if (point.y < 0) throw new IllegalArgumentException("y must not be less than 0");
-
       this.point = point;
       return Builder.this;
     }
@@ -245,17 +264,14 @@ import java.util.List;
     public Builder listener(SquirrelListener listener) {
       if (listener == null) throw new NullPointerException("SquirrelListener == null.");
       if (this.listener != null) throw new IllegalStateException("SquirrelListener already set.");
-
       this.listener = listener;
       return Builder.this;
     }
 
     public Builder addPrinter(Printer printer) {
       if (printer == null) throw new NullPointerException("Printer == null.");
-
       if (this.printers == null) this.printers = new LinkedList<>();
       this.printers.add(printer);
-
       return Builder.this;
     }
 

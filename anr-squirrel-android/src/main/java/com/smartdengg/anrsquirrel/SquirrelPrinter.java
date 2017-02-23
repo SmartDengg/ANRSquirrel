@@ -44,6 +44,7 @@ class SquirrelPrinter implements Printer {
   private final long interval;
   private final boolean onlyMainThread;
   private final List<Printer> printers;
+  private final Printer logging;
   private final Handler ANRHandler;
   private final Handler deadLockHandler;
   private final Callback callback;
@@ -90,6 +91,7 @@ class SquirrelPrinter implements Printer {
     this.onlyMainThread = anrSquirrel.onlyMainThread;
     this.callback = callback;
     this.printers = anrSquirrel.printers;
+    this.logging = anrSquirrel.defaultLogging;
     this.ANRHandler = HandlerFactory.getANRHandler();
     this.deadLockHandler = HandlerFactory.getCheckLockHandler();
   }
@@ -127,6 +129,9 @@ class SquirrelPrinter implements Printer {
   }
 
   private void dispatchingMsg(String x) {
+
+    if (this.logging != null) logging.println(x);
+
     if (this.printers == null || this.printers.size() == 0) return;
 
     //noinspection ForLoopReplaceableByForEach

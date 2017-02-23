@@ -15,7 +15,7 @@ import butterknife.OnClick;
   private MyApplication myApplication;
 
   private static void sleepAMinute() {
-    SystemClock.sleep(6 * 1000);
+    SystemClock.sleep(4 * 1000);
   }
 
   private void deadLock() {

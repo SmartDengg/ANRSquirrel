@@ -2,6 +2,8 @@ package com.smartdengg.anrsquirrel.example;
 
 import android.app.Application;
 import android.graphics.Point;
+import android.os.Looper;
+import android.util.Printer;
 import com.smartdengg.anrsquirrel.ANRError;
 import com.smartdengg.anrsquirrel.ANRSquirrel;
 import com.smartdengg.anrsquirrel.SquirrelListener;
@@ -33,11 +35,18 @@ public class MyApplication extends Application {
     }
     LeakCanary.install(this);
 
-    anrSquirrel = new ANRSquirrel.Builder(MyApplication.this).interval(5 * 1000)
+    anrSquirrel = new ANRSquirrel.Builder(MyApplication.this).interval(2 * 1000)
         .anchor(new Point(100, 100))
         .listener(listener)
         .ignoreDebugger(true)
         .build();
+
+    Looper mainLooper = getMainLooper();
+    mainLooper.setMessageLogging(new Printer() {
+      @Override public void println(String x) {
+        //System.err.println(x);
+      }
+    });
   }
 
   public ANRSquirrel getANRSquirrel() {
